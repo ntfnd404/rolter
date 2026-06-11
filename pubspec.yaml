@@ -7,13 +7,11 @@ repository: https://github.com/ntfnd404/rolter
 issue_tracker: https://github.com/ntfnd404/rolter/issues
 
 topics:
+  - deep-linking
   - navigation
   - navigator
   - nested-navigation
-  - rolter
   - router
-  - routing
-  - state
 
 platforms:
   android:
