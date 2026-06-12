@@ -1,4 +1,5 @@
 import 'package:example/feature/home/routing/home_nav.dart';
+import 'package:example/feature/home/view/demo_title.dart';
 import 'package:example/feature/items/routing/items_nav.dart';
 import 'package:example/feature/mailbox/routing/mailbox_nav.dart';
 import 'package:example/feature/overlays/routing/overlays_nav.dart';
@@ -20,31 +21,31 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _DemoTile(
+          DemoTile(
             icon: Icons.article_outlined,
             title: 'Flat detail',
             subtitle: 'Typed param + deep link — /home/detail~id=5',
             onTap: () => nav.toDetail(5),
           ),
-          _DemoTile(
+          DemoTile(
             icon: Icons.animation,
             title: 'Custom transition',
             subtitle: 'Bespoke slide-up + fade via TransitionPage',
             onTap: nav.toAnimated,
           ),
-          _DemoTile(
+          DemoTile(
             icon: Icons.email_outlined,
             title: 'Mailbox (master-detail)',
             subtitle: 'Split on wide / push on narrow; selection in the URL',
             onTap: nav.toMailbox,
           ),
-          _DemoTile(
+          DemoTile(
             icon: Icons.tab,
             title: 'Tabs + nested stack (guarded)',
             subtitle: 'IndexedStack tabs, nested back, protected by a guard',
             onTap: nav.toTabs,
           ),
-          _DemoTile(
+          DemoTile(
             icon: Icons.palette_outlined,
             title: 'Pick a color',
             subtitle: 'Push-for-result (pushForResult / popWith)',
@@ -60,7 +61,7 @@ class HomeScreen extends StatelessWidget {
               }
             },
           ),
-          _DemoTile(
+          DemoTile(
             icon: Icons.help_outline,
             title: 'Confirm dialog',
             subtitle: 'Dialog-as-route (TransparentPage), returns a result',
@@ -73,7 +74,7 @@ class HomeScreen extends StatelessWidget {
               }
             },
           ),
-          _DemoTile(
+          DemoTile(
             icon: Icons.exposure,
             title: 'Per-route scope',
             subtitle:
@@ -81,40 +82,13 @@ class HomeScreen extends StatelessWidget {
             onTap: nav.toScope,
           ),
           const Divider(),
-          _DemoTile(
+          DemoTile(
             icon: Icons.lock_outline,
             title: 'Lock session',
             subtitle: 'Then open Tabs → redirected to unlock, then restored',
             onTap: () => LockScope.of(context).lock(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DemoTile extends StatelessWidget {
-  const _DemoTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }
