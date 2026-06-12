@@ -15,9 +15,10 @@ import 'package:rolter/src/navigation/navigation_service.dart';
 /// it relinquishes it.
 ///
 /// Nodes are addressed by [path] (precise even when names repeat per level).
-/// The host owns the inner navigator's `GlobalKey`, so the system back button
-/// targets it — not just the AppBar arrow. Customise via [transitionDelegate]
-/// (e.g. `NoAnimationTransitionDelegate`) and [onBackButtonPressed].
+/// The host observes the inner navigator (via a [NavigatorObserver]) to reach
+/// its state, so the system back button targets it — not just the AppBar arrow.
+/// Customise the inner navigator with [transitionDelegate] (e.g.
+/// `NoAnimationTransitionDelegate`) and [onBackButtonPressed].
 class NestedNavigatorHost<R extends RouteNode> extends StatefulWidget {
   /// Creates a host for the children of the node at [path].
   const NestedNavigatorHost({
@@ -55,12 +56,12 @@ class NestedNavigatorHost<R extends RouteNode> extends StatefulWidget {
 
 class _NestedNavigatorHostState<R extends RouteNode>
     extends State<NestedNavigatorHost<R>> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final NavigatorObserver _navigatorObserver = NavigatorObserver();
   BackButtonDispatcher? _parent;
   ChildBackButtonDispatcher? _childDispatcher;
 
   Future<bool> _handleBackButton() {
-    final navigator = _navigatorKey.currentState;
+    final navigator = _navigatorObserver.navigator;
     if (navigator == null) {
       return SynchronousFuture<bool>(false);
     }
@@ -144,7 +145,7 @@ class _NestedNavigatorHostState<R extends RouteNode>
     }
 
     return Navigator(
-      key: _navigatorKey,
+      observers: <NavigatorObserver>[_navigatorObserver],
       transitionDelegate:
           widget.transitionDelegate ??
           const DefaultTransitionDelegate<Object?>(),
