@@ -6,10 +6,9 @@ import 'package:rolter/src/model/route_node.dart';
 import 'package:rolter/src/model/route_tree.dart';
 import 'package:rolter/src/state/navigation_queue.dart';
 
-/// Transforms a requested stack into the committed stack: normalises and, in
-/// v3, folds it through guards. May be sync (v1 normalise) or async (v3
-/// guards) — the queue awaits it either way. v1 wiring passes a
-/// normalise-only function.
+/// Transforms a requested stack into the committed stack — typically normalises
+/// it and folds it through guards. May be sync or async; the queue awaits it
+/// either way.
 typedef ApplyPipeline<R extends RouteNode> =
     FutureOr<List<R>> Function(List<R> requested);
 

@@ -15,8 +15,9 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
     _state.addListener(notifyListeners);
   }
 
-  /// Final field (never a getter) so `popRoute` and `build` read the same key.
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  /// Observes the root navigator so [popRoute] can reach its state without a
+  /// `GlobalKey` (lighter, test-friendly, no element reparenting).
+  final NavigatorObserver _navigatorObserver = NavigatorObserver();
 
   /// Transition delegate for the root navigator. Defaults to the framework's
   /// [DefaultTransitionDelegate].
@@ -29,7 +30,7 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
 
   @override
   Future<bool> popRoute() {
-    final navigator = navigatorKey.currentState;
+    final navigator = _navigatorObserver.navigator;
     if (navigator == null) {
       return SynchronousFuture<bool>(false);
     }
@@ -46,7 +47,7 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
 
   @override
   Widget build(BuildContext context) => Navigator(
-    key: navigatorKey,
+    observers: <NavigatorObserver>[_navigatorObserver],
     transitionDelegate:
         transitionDelegate ?? const DefaultTransitionDelegate<Object?>(),
     pages: <Page<Object?>>[

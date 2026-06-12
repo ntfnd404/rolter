@@ -69,6 +69,11 @@ final app = MaterialApp.router(
 );
 ```
 
+To call navigation from screens via `context.navigator`, place a
+`NavigatorScope` (with your `NavigationController`) **above**
+`MaterialApp.router` — see the [`example/`](example/) app. The snippet above
+renders and deep-links without it.
+
 See the [`example/`](example/) app for nested navigation, tabs, route guards,
 push-for-result, dialog-as-route, and per-route dependency scopes.
 
