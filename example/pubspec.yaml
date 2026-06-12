@@ -1,5 +1,5 @@
 name: example
-description: "A new Flutter project."
+description: "Example app for the rolter router: nested tabs, route guards, push-for-result, dialog-as-route, custom transitions, master-detail, and per-route scopes."
 publish_to: 'none'
 version: 0.1.0+1
 

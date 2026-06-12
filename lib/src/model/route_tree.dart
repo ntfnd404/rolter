@@ -27,12 +27,13 @@ R? nodeAtPath<R extends RouteNode>(List<R> roots, List<String> path) {
   }
 
   R? found;
-  var level = roots;
+  List<R> level = roots;
   for (final name in path) {
     found = null;
     for (final node in level) {
       if (node.name == name) {
         found = node;
+
         break;
       }
     }

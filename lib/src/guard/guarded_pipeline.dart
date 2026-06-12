@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/controller/route_guard.dart';
+import 'package:rolter/src/guard/route_guard.dart';
 import 'package:rolter/src/model/route_node.dart';
 
 /// Builds an apply-pipeline from an ordered list of [RouteGuard]s.
@@ -31,7 +31,11 @@ class GuardedPipeline<R extends RouteNode> {
   /// Returns the currently committed stack, used when a guard cancels.
   final List<R> Function() currentStack;
 
-  /// Maximum number of past stacks kept for [RouteGuard] history.
+  /// Size of the sliding `history` window passed to guards. Bounded so the
+  /// buffer never grows unboundedly over the app's lifetime (every committed
+  /// stack is remembered). The default — 16 — is a few screens of look-back,
+  /// enough for breadcrumb or loop-detection guards; raise it only if a guard
+  /// needs to see deeper into the past.
   final int historyLimit;
 
   /// Fires when any guard's [Listenable] changes — wire to `reevaluate`.

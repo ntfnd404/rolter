@@ -8,13 +8,19 @@ import 'package:rolter/src/state/routes_state.dart';
 /// build their own pages polymorphically via [RouteNode.buildPage].
 class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
     with ChangeNotifier {
-  /// Creates a delegate that renders and mutates [_state].
-  RoutingDelegate(this._state) {
+  /// Creates a delegate that renders and mutates [_state], optionally with a
+  /// [transitionDelegate] for the root navigator (e.g.
+  /// `NoAnimationTransitionDelegate` on web).
+  RoutingDelegate(this._state, {this.transitionDelegate}) {
     _state.addListener(notifyListeners);
   }
 
   /// Final field (never a getter) so `popRoute` and `build` read the same key.
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Transition delegate for the root navigator. Defaults to the framework's
+  /// [DefaultTransitionDelegate].
+  final TransitionDelegate<Object?>? transitionDelegate;
 
   final RoutesState<R> _state;
 
@@ -41,6 +47,8 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
   @override
   Widget build(BuildContext context) => Navigator(
     key: navigatorKey,
+    transitionDelegate:
+        transitionDelegate ?? const DefaultTransitionDelegate<Object?>(),
     pages: <Page<Object?>>[
       for (final route in _state.root) route.buildPage(context),
     ],

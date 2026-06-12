@@ -1,5 +1,5 @@
-import 'package:rolter/src/controller/navigation_service.dart';
 import 'package:rolter/src/model/route_node.dart';
+import 'package:rolter/src/navigation/navigation_service.dart';
 import 'package:rolter/src/state/routes_state.dart';
 
 /// Default [NavigationService] over a [RoutesState]. App-specific typed sugar

@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:rolter/src/guard/guard_result.dart';
 import 'package:rolter/src/model/route_node.dart';
+
+export 'guard_result.dart';
+export 'nav_decision.dart';
 
 /// A composable navigation guard (v3): rewrites or cancels a requested stack.
 ///
@@ -19,31 +23,4 @@ abstract interface class RouteGuard<R extends RouteNode> implements Listenable {
     List<R> requested,
     Map<String, Object?> context,
   );
-}
-
-/// Outcome of a [RouteGuard]: continue with [stack], or cancel navigation.
-class GuardResult<R extends RouteNode> {
-  /// Proceeds with [stack] as the (possibly rewritten) requested stack.
-  const GuardResult.proceed(this.stack) : decision = NavDecision.proceed;
-
-  /// Cancels navigation, leaving the current stack unchanged.
-  const GuardResult.cancel()
-    : stack = const <Never>[],
-      decision = NavDecision.cancel;
-
-  /// The stack to proceed with, or empty when [decision] is
-  /// [NavDecision.cancel].
-  final List<R> stack;
-
-  /// Whether to proceed with [stack] or cancel navigation.
-  final NavDecision decision;
-}
-
-/// Whether a guard lets navigation proceed or cancels it.
-enum NavDecision {
-  /// Proceed with the (possibly rewritten) requested stack.
-  proceed,
-
-  /// Cancel navigation and keep the current stack.
-  cancel,
 }

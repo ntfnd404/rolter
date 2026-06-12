@@ -28,6 +28,13 @@ abstract interface class RouteNode {
 
   /// Builds the page for this node. A nested node hosts a child navigator over
   /// its [children] (see `NestedNavigatorHost`).
+  ///
+  /// Return any [Page] — the engine never downcasts to a concrete page type, so
+  /// flat, nested, dialog, and custom-transition routes share one path. The one
+  /// invariant: a custom [Page] whose `createRoute` builds its own [Route] MUST
+  /// pass `settings: this` to that route. The delegate matches a removed page
+  /// back to its node by [pageKey] read from the route's `settings`; a route
+  /// without it never drops its node, leaking it from the tree.
   Page<Object?> buildPage(BuildContext context);
 }
 

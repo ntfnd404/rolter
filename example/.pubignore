@@ -1,0 +1,12 @@
+# Publish only the example's Dart source. This file replaces example/.gitignore
+# for publishing, so it must also exclude the usual build artifacts.
+/android/
+/ios/
+/linux/
+/macos/
+/windows/
+/web/
+/build/
+/.dart_tool/
+/.idea/
+*.iml

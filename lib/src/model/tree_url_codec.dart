@@ -46,9 +46,13 @@ class TreeUrlCodec<R extends RouteNode> {
     return Uri(path: '/${segments.join('/')}');
   }
 
-  /// Reconstructs the [roots] tree from [uri].
-  List<R> decode(Uri uri) =>
-      _parseSegments(List<String>.of(uri.pathSegments), 0);
+  /// Reconstructs the [roots] tree from [uri]. Empty path segments — a trailing
+  /// slash (`/home/`), a leading or a doubled slash — are dropped, not treated
+  /// as an unknown (not-found) route.
+  List<R> decode(Uri uri) => _parseSegments(<String>[
+    for (final segment in uri.pathSegments)
+      if (segment.isNotEmpty) segment,
+  ], 0);
 
   List<R> _parseSegments(List<String> segments, int depth) {
     final result = <R>[];
@@ -63,6 +67,10 @@ class TreeUrlCodec<R extends RouteNode> {
       }
       segments.removeAt(0);
       final body = raw.substring(currentDepth);
+      if (body.isEmpty) {
+        // A segment made only of dots — no name. Skip, don't fall back.
+        continue;
+      }
       final tildeIndex = body.indexOf('~');
       final name = tildeIndex == -1 ? body : body.substring(0, tildeIndex);
       final params = tildeIndex == -1
