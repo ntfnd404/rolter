@@ -10,12 +10,12 @@ typedef SnapshotProcessor<R extends RouteNode> =
     Future<void> Function(List<R> snapshot);
 
 /// Serialises navigation: every intent enqueues a full target snapshot and the
-/// queue processes them one at a time. This keeps async work (guards in v3,
-/// async pop in v2) from racing. Hand-rolled equivalent of octopus's
-/// `OctopusStateQueue`.
-class RouteStateQueue<R extends RouteNode> {
+/// queue processes them one at a time, so async work (a guard's `await`) never
+/// races. An intent that arrives mid-flight simply queues behind the current
+/// one.
+class NavigationQueue<R extends RouteNode> {
   /// Creates a queue that drains enqueued snapshots through [_process].
-  RouteStateQueue(this._process);
+  NavigationQueue(this._process);
   final SnapshotProcessor<R> _process;
   final List<List<R>> _buffer = <List<R>>[];
   final List<Completer<void>> _idle = <Completer<void>>[];

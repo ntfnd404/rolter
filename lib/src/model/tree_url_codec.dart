@@ -4,10 +4,11 @@ import 'package:rolter/src/model/route_registry.dart';
 /// Encodes the navigation tree to a [Uri] and back, generically, via the
 /// [RouteRegistry].
 ///
-/// Grammar (octopus dot-depth scheme): each node becomes one path segment
+/// Grammar (depth-prefixed segments): each node becomes one path segment
 /// `"{'.' × depth}{name}"`, plus `"~k=v&k2=v2"` (keys sorted, percent-encoded)
 /// when it has params. Root nodes are depth 0; each nesting level adds one
-/// leading dot. Flat (no dots) and nested (dots) use the same code.
+/// leading dot, so the whole tree — flat or nested — round-trips through one
+/// flat path.
 class TreeUrlCodec<R extends RouteNode> {
   /// Creates a codec that decodes nodes via [_registry].
   const TreeUrlCodec(this._registry);

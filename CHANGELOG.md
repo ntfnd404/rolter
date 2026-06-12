@@ -9,7 +9,7 @@ Initial release.
 - Built-in nested navigation via `NavigatorScope` and `NestedNavigatorHost`
   (path-addressed, with an optional `transitionDelegate` and a single
   back-button override hook).
-- Async-safe navigation through `RouteStateQueue` and route guards
+- Async-safe navigation through a serial `NavigationQueue` and route guards
   (`RouteGuard`, `GuardedPipeline`).
 - Result-returning navigation: `pushForResult` / `popWith` (e.g. pickers and
   dialog-as-route that return a value).

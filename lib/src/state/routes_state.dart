@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:rolter/src/model/route_node.dart';
 import 'package:rolter/src/model/route_tree.dart';
-import 'package:rolter/src/state/route_state_queue.dart';
+import 'package:rolter/src/state/navigation_queue.dart';
 
 /// Transforms a requested stack into the committed stack: normalises and, in
 /// v3, folds it through guards. May be sync (v1 normalise) or async (v3
@@ -21,12 +21,12 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Creates a state with [initial] as the committed root, applying
   /// [_pipeline] to every subsequent change.
   RoutesState(List<R> initial, this._pipeline) : _root = List<R>.of(initial) {
-    _queue = RouteStateQueue<R>(_commit);
+    _queue = NavigationQueue<R>(_commit);
   }
   final ApplyPipeline<R> _pipeline;
   final Map<LocalKey, Completer<Object?>> _results =
       <LocalKey, Completer<Object?>>{};
-  late final RouteStateQueue<R> _queue;
+  late final NavigationQueue<R> _queue;
   List<R> _root;
   List<R>? _pending;
 
@@ -40,7 +40,7 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   bool get canPop => _root.length > 1;
 
   /// Exposes the queue so callers can await idle (e.g. tests).
-  RouteStateQueue<R> get queue => _queue;
+  NavigationQueue<R> get queue => _queue;
 
   // Latest enqueued target (or committed root) so rapid relative ops compose.
   List<R> get _base => _pending ?? _root;

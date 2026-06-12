@@ -26,7 +26,7 @@ export 'src/navigation/navigation_service.dart';
 export 'src/pages/no_animation_page.dart';
 export 'src/pages/transition_page.dart';
 export 'src/pages/transparent_page.dart';
-export 'src/state/route_state_queue.dart';
+export 'src/state/navigation_queue.dart';
 export 'src/state/routes_state.dart';
 export 'src/transitions/no_animation_transition_delegate.dart';
 export 'src/widgets/navigator_scope.dart';
