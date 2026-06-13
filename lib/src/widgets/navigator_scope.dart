@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:rolter/src/widgets/scope_access.dart';
+
 /// Inherited facade exposing the app's navigator to the widget tree.
 ///
 /// Must sit ABOVE `MaterialApp.router` (not inside its `builder:`), so the
@@ -14,17 +16,12 @@ class NavigatorScope<N extends Object> extends InheritedWidget {
   });
 
   /// Reads the nearest [NavigatorScope] of type [N] without subscribing.
-  static N of<N extends Object>(BuildContext context) {
-    final scope = context.getInheritedWidgetOfExactType<NavigatorScope<N>>();
-    if (scope == null) {
-      throw FlutterError(
+  static N of<N extends Object>(BuildContext context) => context
+      .readScopeOrThrow<NavigatorScope<N>>(
         'NavigatorScope<$N> not found. Place it ABOVE MaterialApp.router, '
         'not inside its builder: (see spec C5).',
-      );
-    }
-
-    return scope.navigator;
-  }
+      )
+      .navigator;
 
   /// The navigator exposed to descendants.
   final N navigator;

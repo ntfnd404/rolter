@@ -1,4 +1,4 @@
-import 'package:example/feature/mailbox/data/mail_item.dart';
+import 'package:example/feature/mailbox/domain/entities/mail.dart';
 import 'package:example/feature/mailbox/routing/mailbox_nav.dart';
 import 'package:example/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 class MailList extends StatelessWidget {
   const MailList({super.key, required this.mails, required this.selectedId});
 
-  final List<MailItem> mails;
+  final List<Mail> mails;
   final int? selectedId;
 
   @override

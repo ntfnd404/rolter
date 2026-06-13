@@ -1,5 +1,6 @@
 import 'package:example/feature/session/di/lock_controller.dart';
 import 'package:flutter/widgets.dart';
+import 'package:rolter/rolter.dart';
 
 /// Exposes [LockController] above `MaterialApp.router`, like `NavigatorScope`.
 class LockScope extends InheritedWidget {
@@ -7,13 +8,11 @@ class LockScope extends InheritedWidget {
 
   final LockController controller;
 
-  static LockController of(BuildContext context) {
-    final scope = context.getInheritedWidgetOfExactType<LockScope>();
-    if (scope == null) {
-      throw FlutterError('LockScope not found above MaterialApp.router');
-    }
-    return scope.controller;
-  }
+  static LockController of(BuildContext context) => context
+      .readScopeOrThrow<LockScope>(
+        'LockScope not found above MaterialApp.router',
+      )
+      .controller;
 
   @override
   bool updateShouldNotify(LockScope oldWidget) =>

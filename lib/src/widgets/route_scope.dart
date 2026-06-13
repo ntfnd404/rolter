@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:rolter/src/widgets/scope_access.dart';
+
 /// A per-route dependency scope.
 ///
 /// Creates a value (a BLoC, controller, or small dependency graph) in
@@ -18,15 +20,11 @@ class RouteScope<T> extends StatefulWidget {
   });
 
   /// Reads the nearest [RouteScope] value of type [T].
-  static T of<T>(BuildContext context) {
-    final provider = context
-        .dependOnInheritedWidgetOfExactType<_RouteScopeProvider<T>>();
-    if (provider == null) {
-      throw FlutterError('RouteScope<$T> not found in the widget tree.');
-    }
-
-    return provider.value;
-  }
+  static T of<T>(BuildContext context) => context
+      .watchScopeOrThrow<_RouteScopeProvider<T>>(
+        'RouteScope<$T> not found in the widget tree.',
+      )
+      .value;
 
   /// Builds the scoped value, called once in `initState`.
   final T Function() create;

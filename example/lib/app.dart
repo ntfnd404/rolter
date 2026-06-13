@@ -1,4 +1,10 @@
+import 'package:example/di/app_dependencies.dart';
+import 'package:example/di/app_scope.dart';
 import 'package:example/feature/home/routing/home_route.dart';
+import 'package:example/feature/items/data/data_sources/item_local_data_source_impl.dart';
+import 'package:example/feature/items/data/repositories/item_repository_impl.dart';
+import 'package:example/feature/mailbox/data/data_sources/mail_local_data_source_impl.dart';
+import 'package:example/feature/mailbox/data/repositories/mail_repository_impl.dart';
 import 'package:example/feature/session/di/lock_controller.dart';
 import 'package:example/feature/session/routing/lock_guard.dart';
 import 'package:example/feature/session/di/lock_scope.dart';
@@ -10,8 +16,12 @@ import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 
 /// Root of the rolter example — the composition root. Builds the engine pieces
-/// over [AppRoute], aggregates each feature's decoders via [appRegistry], and
-/// places `NavigatorScope` + `LockScope` ABOVE `MaterialApp.router`.
+/// over [AppRoute] and aggregates each feature's decoders via [appRegistry].
+///
+/// `NavigatorScope` sits ABOVE `MaterialApp.router` (read by `buildPage` via the
+/// delegate context). `AppScope` + `LockScope` sit in the router's `builder:` —
+/// below `MaterialApp` (so the DI graph has `Theme`/`MediaQuery`) and above the
+/// `Navigator`.
 class ExampleApp extends StatefulWidget {
   const ExampleApp({super.key});
 
@@ -20,6 +30,12 @@ class ExampleApp extends StatefulWidget {
 }
 
 class _ExampleAppState extends State<ExampleApp> {
+  // Composition root: the dependency graph (data source -> repository) is wired
+  // here once, then exposed app-wide via AppScope — never in a route or screen.
+  final AppDependencies _dependencies = const AppDependencies(
+    mailRepository: MailRepositoryImpl(MailLocalDataSourceImpl()),
+    itemRepository: ItemRepositoryImpl(ItemLocalDataSourceImpl()),
+  );
   late final LockController _lock;
   late final LockGuard _lockGuard;
   late final NavigationLogGuard _navLogGuard;
@@ -60,14 +76,15 @@ class _ExampleAppState extends State<ExampleApp> {
 
   @override
   Widget build(BuildContext context) {
-    return LockScope(
-      controller: _lock,
-      child: NavigatorScope<AppNavigator>(
-        navigator: _navigator,
-        child: MaterialApp.router(
-          title: 'rolter example',
-          routerDelegate: _delegate,
-          routeInformationParser: _parser,
+    return NavigatorScope<AppNavigator>(
+      navigator: _navigator,
+      child: MaterialApp.router(
+        title: 'rolter example',
+        routerDelegate: _delegate,
+        routeInformationParser: _parser,
+        builder: (context, child) => AppScope(
+          dependencies: _dependencies,
+          child: LockScope(controller: _lock, child: child!),
         ),
       ),
     );

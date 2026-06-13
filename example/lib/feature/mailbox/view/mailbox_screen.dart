@@ -1,12 +1,10 @@
-import 'package:example/feature/mailbox/data/mail_repository.dart';
+import 'package:example/di/app_scope.dart';
 import 'package:example/feature/mailbox/routing/mailbox_nav.dart';
 import 'package:example/feature/mailbox/view/mail_detail.dart';
 import 'package:example/feature/mailbox/view/mail_list.dart';
+import 'package:example/feature/mailbox/view/mailbox_constants.dart';
 import 'package:example/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
-
-/// Width at or above which the mailbox shows list and detail side by side.
-const double _splitBreakpoint = 600;
 
 /// Master-detail screen driven by the URL.
 ///
@@ -21,13 +19,13 @@ class MailboxScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const repository = MailRepository();
+    final repository = AppScope.of(context).mailRepository;
     final mails = repository.all();
     final selected = repository.byId(selectedId);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= _splitBreakpoint) {
+        if (constraints.maxWidth >= MailboxConstants.splitBreakpoint) {
           return Scaffold(
             appBar: AppBar(title: const Text('Mailbox — split')),
             body: Row(

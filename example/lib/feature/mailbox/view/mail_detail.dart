@@ -1,10 +1,10 @@
-import 'package:example/feature/mailbox/data/mail_item.dart';
+import 'package:example/feature/mailbox/domain/entities/mail.dart';
 import 'package:flutter/material.dart';
 
 class MailDetail extends StatelessWidget {
   const MailDetail({super.key, required this.mail});
 
-  final MailItem? mail;
+  final Mail? mail;
 
   @override
   Widget build(BuildContext context) {

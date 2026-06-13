@@ -32,3 +32,4 @@ export 'src/transitions/no_animation_transition_delegate.dart';
 export 'src/widgets/navigator_scope.dart';
 export 'src/widgets/nested_navigator_host.dart';
 export 'src/widgets/route_scope.dart';
+export 'src/widgets/scope_access.dart';
