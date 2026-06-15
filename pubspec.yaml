@@ -1,0 +1,36 @@
+name: rolter
+description: "A declarative, tree-based router for Flutter focused on typed routes and nested navigation"
+version: 0.0.1
+
+homepage: https://github.com/ntfnd404/rolter
+repository: https://github.com/ntfnd404/rolter
+issue_tracker: https://github.com/ntfnd404/rolter/issues
+
+topics:
+  - deep-linking
+  - navigation
+  - navigator
+  - nested-navigation
+  - router
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+environment:
+  sdk: ^3.12.1
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0

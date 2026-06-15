@@ -1,0 +1,330 @@
+# Rolter
+
+A hand-rolled, declarative Navigator 2.0 routing engine for Flutter with a
+typed, URL-serializable route tree and built-in nested navigation.
+
+## Features
+
+- Declarative, tree-based route configuration
+- Typed routes with URL serialization/deserialization
+- Built-in support for nested navigation
+- Built directly on top of Navigator 2.0 (`Router`, `RouterDelegate`,
+  `RouteInformationParser`)
+
+## Status
+
+This package is in early development. The API is not yet stable and may
+change significantly between versions.
+
+## Getting started
+
+Add `rolter` to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  rolter: ^0.0.1
+```
+
+## Usage
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:rolter/rolter.dart';
+
+// 1. Define a typed route tree.
+sealed class AppRoute implements RouteNode {
+  const AppRoute();
+  @override
+  List<AppRoute> get children => const [];
+  @override
+  AppRoute withChildren(List<RouteNode> children) => this;
+}
+
+final class HomeRoute extends AppRoute {
+  const HomeRoute();
+  @override
+  LocalKey get pageKey => const ValueKey('home');
+  @override
+  String get name => 'home';
+  @override
+  Map<String, String> toParams() => const {};
+  @override
+  Page<Object?> buildPage(BuildContext context) =>
+      const MaterialPage(child: Scaffold(body: Center(child: Text('Home'))));
+}
+
+// 2. Register decoders so URLs / deep links rebuild the tree.
+final registry = RouteRegistry<AppRoute>(
+  {'home': (params, children) => const HomeRoute()},
+  fallback: (uri) => const HomeRoute(),
+);
+
+// 3. Wire Navigator 2.0.
+final state = RoutesState<AppRoute>(const [HomeRoute()], (stack) => stack);
+
+final app = MaterialApp.router(
+  routerDelegate: RoutingDelegate<AppRoute>(state),
+  routeInformationParser:
+      RoutingInformationParser<AppRoute>(TreeUrlCodec(registry)),
+);
+```
+
+To call navigation from screens via `context.navigator`, place a
+`NavigatorScope` (with your `NavigationController`) **above**
+`MaterialApp.router` — see the [`example/`](example/) app. The snippet above
+renders and deep-links without it.
+
+See the [`example/`](example/) app for nested navigation, tabs, route guards,
+push-for-result, dialog-as-route, and per-route dependency scopes.
+
+## Route identity (important)
+
+Every `RouteNode` must have value `==`/`hashCode`, and its `pageKey` must encode
+every identity-bearing param and be **unique across the whole tree**. The engine
+detects changes with `listEquals` and keys pages by `pageKey`, so a param left
+out of both is invisible (the navigation is silently a no-op) and a shared
+`pageKey` collapses two pages into one (a duplicate-key assertion). For a leaf,
+put the params in the key and mix in `KeyedRouteEquality`:
+
+```dart
+final class ItemRoute with KeyedRouteEquality {
+  const ItemRoute(this.id);
+  final int id;
+  @override
+  LocalKey get pageKey => ValueKey('item:$id'); // every param in the key
+  @override
+  String get name => 'item';
+  @override
+  List<RouteNode> get children => const [];
+  @override
+  Map<String, String> toParams() => {'id': '$id'};
+  @override
+  RouteNode withChildren(List<RouteNode> children) => this;
+  @override
+  Page<Object?> buildPage(BuildContext context) => /* ... */;
+}
+```
+
+A shell/tab node distinguished by its `children` or by a param not in `pageKey`
+(e.g. the active tab) must override `==`/`hashCode` to compare that state.
+
+**Serializable vs runtime params.** Typed route fields carry both kinds, so
+there is no separate `arguments`/`extra` split: `toParams()` is the URL wire
+format — the serializable identity that survives a deep link (their
+`arguments`). A typed field you *don't* put in `toParams()` is runtime-only
+(their `extra`): fine within a session, but a cold deep link can't reconstruct
+it, so keep anything that must survive in `toParams()`.
+
+## Confirm on leave (blocking back)
+
+Route guards run *after* a page is removed (`onDidRemovePage`), so they can't
+pre-empt a back gesture. Block leaving with Flutter's `PopScope` on the screen,
+then pop explicitly once confirmed:
+
+```dart
+PopScope(
+  canPop: !hasUnsavedChanges,
+  onPopInvokedWithResult: (didPop, _) async {
+    if (didPop) return;
+    if (await confirmDiscard(context)) context.navigator.pop();
+  },
+  child: /* ... */,
+);
+```
+
+A guard's `cancel` is the *programmatic* safety net — the engine re-syncs the
+navigator to the tree when a guard reverts a removal — but per-screen
+confirmation belongs in `PopScope`. See the example's "Confirm on leave" demo.
+
+## Deep links & return-after-login
+
+A deep link is just a guard input: the guard pipeline runs on every
+`setNewRoutePath`, so a guard can inspect and redirect the incoming stack — no
+separate deep-link subsystem. To divert the user (e.g. to a lock/login screen)
+and return them afterwards, share a `PendingLocation` with the guard:
+
+```dart
+final _pending = PendingLocation<AppRoute>();
+
+@override
+GuardResult<AppRoute> call(history, requested, context) {
+  if (locked && wantsProtected) {
+    _pending.remember(requested);                 // stash the intended target
+    return const GuardResult.proceed([LockRoute()]);
+  }
+  if (_pending.hasPending && onLockScreen) {
+    return GuardResult.proceed(_pending.take()!); // restore it on unlock
+  }
+  return GuardResult.proceed(requested);
+}
+```
+
+Wire the guard's `Listenable` to `RoutesState.reevaluate` so unlocking reruns
+the pipeline and replays the remembered location. See the example's `LockGuard`.
+
+## Back / forward history
+
+`NavigationHistory` records committed states (wire it as a `NavObserver`) and
+replays them through a `restore` callback, giving browser-like back/forward for
+in-app controls or non-web targets (on the web the browser already does this):
+
+```dart
+late final RoutesState<AppRoute> state;
+final history = NavigationHistory<AppRoute>((stack) => state.setRoot(stack));
+state = RoutesState<AppRoute>(initial, pipeline, observers: [history]);
+
+// `history` is a ChangeNotifier, so a control can rebuild its enabled state:
+IconButton(onPressed: history.canGoBack ? history.back : null, icon: ...);
+IconButton(onPressed: history.canGoForward ? history.forward : null, icon: ...);
+```
+
+A *new* navigation drops the forward entries (browser semantics); only
+`back`/`forward` move the cursor without recording.
+
+## Swapping the URL grammar
+
+The parser depends on the `RouteUrlCodec` interface, not a concrete codec.
+`TreeUrlCodec` is the default dot-depth implementation. Rolter also ships
+`Base64RouteCodec` — an opaque base64url-JSON-in-path codec for redirects that
+strip the fragment (OAuth / Telegram): the whole route survives as one token
+(`/eyJuIjoiaG9tZSJ9`). Or write your own, as long as `decode(encode(tree))`
+round-trips.
+
+## Feature sub-routers (namespace isolation)
+
+A flat registry shares one route-name namespace. When features ship as separate
+packages, mount each under its own sub-registry so their names are isolated —
+two features can each define a `detail`:
+
+```dart
+final shopRegistry = RouteRegistry<AppRoute>(
+  {'home': ..., 'detail': ...},   // names local to shop
+  fallback: NotFoundRoute.new,
+);
+
+final appRegistry = composeFeatureRouters<AppRoute>(
+  fallback: NotFoundRoute.new,
+  decoders: {...homeRoutes},        // flat top-level routes still work
+  features: [
+    FeatureRouter(name: 'shop', mountDecoder: ..., registry: shopRegistry),
+    FeatureRouter(name: 'blog', mountDecoder: ..., registry: blogRegistry),
+  ],
+);
+// /shop/.detail and /blog/.detail resolve via their OWN registries.
+```
+
+Page keys stay **global** (the Navigator's requirement), so keep them unique
+across the whole tree (e.g. prefix by feature) even though URL *names* are
+isolated. See the example's "Feature sub-routers" demo.
+
+## State restoration
+
+The navigation tree is restored from `RouteInformation`, so it survives a web
+reload / deep link **and** an OS-killed relaunch — just set `restorationScopeId`
+on `MaterialApp.router`:
+
+```dart
+MaterialApp.router(
+  restorationScopeId: 'app',
+  routerDelegate: delegate,
+  routeInformationParser: parser,
+);
+```
+
+The delegate restores through the framework's default `setRestoredRoutePath`
+(which funnels into the same `setNewRoutePath`), so no extra engine wiring is
+needed. Per-screen *ephemeral* state (scroll offset, a half-typed field) is the
+screen's own concern — use Flutter's `RestorationMixin` inside the screen (or a
+`RouteScope` value), independent of the router.
+
+## Web URL strategy
+
+rolter is URL-strategy-agnostic — pick one in your app's `main()`:
+
+- **Hash** (Flutter web default — `/#/hub/home~intent=stream`): no server
+  config, and the route lives in the fragment, immune to path normalization;
+  but not SEO-friendly.
+- **Path** (`usePathUrlStrategy()` — `/hub/home~intent=stream`): clean,
+  shareable, SEO-friendly URLs, but the server must rewrite unknown paths to
+  `index.html`. One caveat: the dot-depth grammar puts leading-dot segments
+  (`.settings`) and `~` in the real path, so a proxy/CDN that normalizes
+  RFC-3986 dot-segments could rewrite them — test your hosting, or use the hash
+  strategy / `Base64RouteCodec` if that bites.
+
+## Custom pages & transitions
+
+A route's `buildPage` may return **any** `Page` — the engine never downcasts to
+a concrete page type, so flat, nested, dialog, and custom-transition routes all
+share one code path. Pick by how much you need:
+
+| Need | Return | Custom `Route`? |
+|---|---|---|
+| A bespoke transition (fade/slide/scale) | `TransitionPage(transitionsBuilder: …)` | no |
+| Full route semantics (drag-to-dismiss, barrier, predictive back) | your own `PageRoute`/`ModalRoute` (like `NoAnimationPage`) | yes |
+| No animation for a whole nested stack | a `TransitionDelegate` (e.g. `NoAnimationTransitionDelegate`) on the navigator | — |
+
+**One invariant:** a custom `Page` whose `createRoute` builds its own `Route`
+MUST pass `settings: this`. The delegate matches a removed page back to its node
+by `pageKey` read from the route's `settings`; omit it and the node leaks from
+the tree.
+
+## Organising the catalog: monolithic vs feature-first
+
+The engine depends only on the `RouteNode` interface and a `RouteRegistry` map,
+so the app's route catalog can be organised either way — pick by scale.
+
+### Monolithic (small / single-module apps)
+
+One `sealed` base, routes as `part` files, one registry. The win is an
+**exhaustive `switch`** — the compiler flags an unhandled route.
+
+```dart
+// app_route.dart — one library
+sealed class AppRoute implements RouteNode {
+  const AppRoute();
+  @override
+  List<AppRoute> get children => const [];
+  @override
+  AppRoute withChildren(List<RouteNode> children) => this;
+}
+
+part 'home_route.dart';   // final class HomeRoute extends AppRoute { ... }
+part 'detail_route.dart';
+
+final registry = RouteRegistry<AppRoute>({
+  'home':   (_, _) => const HomeRoute(),
+  'detail': (p, _) => DetailRoute(int.parse(p['id']!)),
+}, fallback: NotFoundRoute.new);
+```
+
+### Feature-first (large / multi-package / DDD)
+
+Each feature owns its routes (`class XRoute implements RouteNode` — non-sealed,
+so it can live in its own package), a wire-name enum, a decoder contribution,
+and its navigation sugar. The composition root only aggregates:
+
+```dart
+// feature/home/home_routes.dart
+Map<String, RouteDecoder<AppRoute>> get homeRoutes => {
+  HomeRouteName.home.wire:   (_, _) => const HomeRoute(),
+  HomeRouteName.detail.wire: (p, _) => DetailRoute(int.parse(p['id']!)),
+};
+
+// routing/app_registry.dart — composition root
+final appRegistry = RouteRegistry<AppRoute>({
+  ...homeRoutes, ...mailboxRoutes, ...itemsRoutes, /* ... */
+}, fallback: NotFoundRoute.new);
+```
+
+A feature with no deep link need not register at all. Dropping `sealed` costs
+the exhaustive `switch` but lets routes span packages. **The [`example/`](example/)
+app is a worked feature-first reference.**
+
+Rule of thumb: monolithic for a single app; feature-first once features become
+their own packages or teams.
+
+## Additional information
+
+- Source code: https://github.com/ntfnd404/rolter
+- Issue tracker: https://github.com/ntfnd404/rolter/issues
+- License: MIT
