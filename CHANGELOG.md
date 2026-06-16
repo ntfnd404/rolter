@@ -26,7 +26,9 @@ Initial release.
 - Read-only navigation telemetry via `NavObserver` (each commit reports the
   previous/next stacks and the entered/left page keys).
 - Deep links are handled by guards (no separate subsystem); a `PendingLocation`
-  store holds the intended target for return-after-login/unlock.
+  store holds the intended target for return-after-login/unlock, and a
+  `StreamListenable` bridges a `Bloc`/`Cubit`/stream into the `Listenable` a
+  guard exposes (read state synchronously, re-evaluate on each event).
 - Browser-like `NavigationHistory` — back/forward over committed states (wired
   as a `NavObserver`, replays via a `restore` callback; new navigation drops the
   forward tail).

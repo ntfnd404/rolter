@@ -1,5 +1,7 @@
-import 'package:example/feature/session/di/lock_scope.dart';
+import 'package:example/feature/session/bloc/lock_bloc.dart';
+import 'package:example/feature/session/bloc/lock_event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Shown by the guard when a protected route is requested while locked.
 class UnlockScreen extends StatelessWidget {
@@ -18,7 +20,8 @@ class UnlockScreen extends StatelessWidget {
             const Text('Session is locked'),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () => LockScope.of(context).unlock(),
+              onPressed: () =>
+                  context.read<LockBloc>().add(const UnlockRequested()),
               child: const Text('Unlock'),
             ),
           ],

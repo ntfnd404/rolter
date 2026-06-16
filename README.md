@@ -162,6 +162,50 @@ GuardResult<AppRoute> call(history, requested, context) {
 Wire the guard's `Listenable` to `RoutesState.reevaluate` so unlocking reruns
 the pipeline and replays the remembered location. See the example's `LockGuard`.
 
+## Guards backed by a Bloc / stream
+
+A `RouteGuard` is a `Listenable` — the pipeline reruns the guards whenever one
+fires. A `Bloc`/`Cubit` is a `Stream`, not a `Listenable`, so bridge it with
+`StreamListenable` instead of mixing in a `ChangeNotifier`: compose one, delegate
+`addListener`/`removeListener` to it, and read the bloc's current value
+synchronously from its `state` inside `call`:
+
+```dart
+final class LockGuard implements RouteGuard<AppRoute> {
+  LockGuard(this._bloc) {
+    _refresh = StreamListenable(_bloc.stream); // fires the guard on each event
+  }
+
+  final LockBloc _bloc;                        // Bloc<LockEvent, LockState>
+  late final StreamListenable _refresh;
+  final _pending = PendingLocation<AppRoute>();
+
+  @override
+  void addListener(VoidCallback l) => _refresh.addListener(l);
+  @override
+  void removeListener(VoidCallback l) => _refresh.removeListener(l);
+
+  @override
+  GuardResult<AppRoute> call(history, requested, context) {
+    if (_bloc.state.isLocked && wantsProtected) {  // read current state, sync
+      _pending.remember(requested);
+      return const GuardResult.proceed([LockRoute()]);
+    }
+    if (_pending.hasPending && onLockScreen) {
+      return GuardResult.proceed(_pending.take()!);
+    }
+    return GuardResult.proceed(requested);
+  }
+
+  void dispose() => _refresh.dispose();
+}
+```
+
+The stream only signals *when* to re-evaluate; the decision reads the bloc's
+`state` directly, so the guard stays decoupled from how state is stored (the
+same shape works for a `ValueNotifier`, an `rxdart` subject, etc.). Pass an
+already-`distinct()` (or mapped) stream to avoid redundant reruns.
+
 ## Back / forward history
 
 `NavigationHistory` records committed states (wire it as a `NavObserver`) and
@@ -268,60 +312,18 @@ MUST pass `settings: this`. The delegate matches a removed page back to its node
 by `pageKey` read from the route's `settings`; omit it and the node leaks from
 the tree.
 
-## Organising the catalog: monolithic vs feature-first
+## Organising the catalog
 
-The engine depends only on the `RouteNode` interface and a `RouteRegistry` map,
-so the app's route catalog can be organised either way — pick by scale.
+`RouteRegistry` takes a plain decoder map, so the catalog can be assembled two
+ways:
 
-### Monolithic (small / single-module apps)
+- **Monolithic** — one `sealed AppRoute` + one registry; you get an exhaustive
+  `switch` over routes.
+- **Feature-first** — each feature contributes a decoder map (non-sealed routes,
+  so they can live in separate packages), merged into one registry, or mounted as
+  isolated sub-routers via `composeFeatureRouters`.
 
-One `sealed` base, routes as `part` files, one registry. The win is an
-**exhaustive `switch`** — the compiler flags an unhandled route.
-
-```dart
-// app_route.dart — one library
-sealed class AppRoute implements RouteNode {
-  const AppRoute();
-  @override
-  List<AppRoute> get children => const [];
-  @override
-  AppRoute withChildren(List<RouteNode> children) => this;
-}
-
-part 'home_route.dart';   // final class HomeRoute extends AppRoute { ... }
-part 'detail_route.dart';
-
-final registry = RouteRegistry<AppRoute>({
-  'home':   (_, _) => const HomeRoute(),
-  'detail': (p, _) => DetailRoute(int.parse(p['id']!)),
-}, fallback: NotFoundRoute.new);
-```
-
-### Feature-first (large / multi-package / DDD)
-
-Each feature owns its routes (`class XRoute implements RouteNode` — non-sealed,
-so it can live in its own package), a wire-name enum, a decoder contribution,
-and its navigation sugar. The composition root only aggregates:
-
-```dart
-// feature/home/home_routes.dart
-Map<String, RouteDecoder<AppRoute>> get homeRoutes => {
-  HomeRouteName.home.wire:   (_, _) => const HomeRoute(),
-  HomeRouteName.detail.wire: (p, _) => DetailRoute(int.parse(p['id']!)),
-};
-
-// routing/app_registry.dart — composition root
-final appRegistry = RouteRegistry<AppRoute>({
-  ...homeRoutes, ...mailboxRoutes, ...itemsRoutes, /* ... */
-}, fallback: NotFoundRoute.new);
-```
-
-A feature with no deep link need not register at all. Dropping `sealed` costs
-the exhaustive `switch` but lets routes span packages. **The [`example/`](example/)
-app is a worked feature-first reference.**
-
-Rule of thumb: monolithic for a single app; feature-first once features become
-their own packages or teams.
+See [`example/`](example/) for a worked feature-first layout.
 
 ## Additional information
 

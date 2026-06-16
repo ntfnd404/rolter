@@ -1,5 +1,5 @@
 import 'package:example/feature/mailbox/routing/mailbox_route.dart';
-import 'package:example/routing/app_navigator.dart';
+import 'package:example/core/routing/app_navigator.dart';
 
 /// Mailbox feature's navigation sugar, added to the shared [AppNavigator].
 extension MailboxNav on AppNavigator {

@@ -1,6 +1,6 @@
 import 'package:example/feature/mailbox/routing/mailbox_route_name.dart';
 import 'package:example/feature/mailbox/view/mailbox_screen.dart';
-import 'package:example/routing/app_route.dart';
+import 'package:example/core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// Master-detail route. [selectedId] lives in the URL (`~sel=N`), so the

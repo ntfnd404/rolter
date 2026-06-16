@@ -1,27 +1,28 @@
-import 'package:example/di/app_dependencies.dart';
-import 'package:example/di/app_scope.dart';
+import 'package:example/core/di/app_dependencies.dart';
+import 'package:example/core/di/app_scope.dart';
 import 'package:example/feature/home/routing/home_route.dart';
-import 'package:example/feature/items/data/data_sources/item_local_data_source_impl.dart';
-import 'package:example/feature/items/data/repositories/item_repository_impl.dart';
+import 'package:example/feature/tabbed_stack/shared/data/data_sources/item_local_data_source_impl.dart';
+import 'package:example/feature/tabbed_stack/shared/data/repositories/item_repository_impl.dart';
 import 'package:example/feature/mailbox/data/data_sources/mail_local_data_source_impl.dart';
 import 'package:example/feature/mailbox/data/repositories/mail_repository_impl.dart';
-import 'package:example/feature/session/di/lock_controller.dart';
+import 'package:example/feature/session/application/session_lock_service.dart';
+import 'package:example/feature/session/bloc/lock_bloc.dart';
 import 'package:example/feature/session/routing/lock_guard.dart';
-import 'package:example/feature/session/di/lock_scope.dart';
-import 'package:example/routing/app_navigator.dart';
-import 'package:example/routing/app_registry.dart';
-import 'package:example/routing/app_route.dart';
-import 'package:example/routing/nav_log_observer.dart';
+import 'package:example/core/routing/app_navigator.dart';
+import 'package:example/core/routing/app_registry.dart';
+import 'package:example/core/routing/app_route.dart';
+import 'package:example/core/routing/nav_log_observer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rolter/rolter.dart';
 
 /// Root of the rolter example — the composition root. Builds the engine pieces
 /// over [AppRoute] and aggregates each feature's decoders via [appRegistry].
 ///
 /// `NavigatorScope` sits ABOVE `MaterialApp.router` (read by `buildPage` via the
-/// delegate context). `AppScope` + `LockScope` sit in the router's `builder:` —
-/// below `MaterialApp` (so the DI graph has `Theme`/`MediaQuery`) and above the
-/// `Navigator`.
+/// delegate context). `AppScope` + the `LockBloc` provider sit in the router's
+/// `builder:` — below `MaterialApp` (so the DI graph has `Theme`/`MediaQuery`)
+/// and above the `Navigator`.
 class ExampleApp extends StatefulWidget {
   const ExampleApp({super.key});
 
@@ -36,7 +37,7 @@ class _ExampleAppState extends State<ExampleApp> {
     mailRepository: MailRepositoryImpl(MailLocalDataSourceImpl()),
     itemRepository: ItemRepositoryImpl(ItemLocalDataSourceImpl()),
   );
-  late final LockController _lock;
+  late final SessionLockService _lockService;
   late final LockGuard _lockGuard;
   late final RoutesState<AppRoute> _state;
   late final AppNavigator _navigator;
@@ -48,8 +49,8 @@ class _ExampleAppState extends State<ExampleApp> {
   @override
   void initState() {
     super.initState();
-    _lock = LockController();
-    _lockGuard = LockGuard(_lock);
+    _lockService = SessionLockService();
+    _lockGuard = LockGuard(_lockService);
     final pipeline = GuardedPipeline<AppRoute>(
       guards: <RouteGuard<AppRoute>>[_lockGuard],
       normalize: normalizeAppStack,
@@ -77,7 +78,7 @@ class _ExampleAppState extends State<ExampleApp> {
     _delegate.dispose();
     _state.dispose();
     _lockGuard.dispose();
-    _lock.dispose();
+    _lockService.dispose();
     _entryQuery.dispose();
     super.dispose();
   }
@@ -95,7 +96,10 @@ class _ExampleAppState extends State<ExampleApp> {
         routeInformationParser: _parser,
         builder: (context, child) => AppScope(
           dependencies: _dependencies,
-          child: LockScope(controller: _lock, child: child!),
+          child: BlocProvider<LockBloc>(
+            create: (_) => LockBloc(_lockService),
+            child: child!,
+          ),
         ),
       ),
     );

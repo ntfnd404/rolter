@@ -10,13 +10,15 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_bloc: ^9.0.0
+
   rolter:
     path: ../
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-    
+
   flutter_lints: ^6.0.0
 
 flutter:

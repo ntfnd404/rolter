@@ -1,16 +1,20 @@
+import 'package:example/feature/animated/routing/animated_nav.dart';
+import 'package:example/feature/confirm/routing/confirm_nav.dart';
+import 'package:example/feature/detail/routing/detail_nav.dart';
 import 'package:example/feature/editor/routing/editor_nav.dart';
-import 'package:example/feature/home/routing/home_nav.dart';
-import 'package:example/feature/home/view/demo_title.dart';
-import 'package:example/feature/items/routing/items_nav.dart';
+import 'package:example/feature/home/view/widgets/home_tile.dart';
 import 'package:example/feature/mailbox/routing/mailbox_nav.dart';
-import 'package:example/feature/modules/routing/modules_nav.dart';
-import 'package:example/feature/modules/routing/modules_routes.dart';
-import 'package:example/feature/multitabs/routing/multitabs_nav.dart';
-import 'package:example/feature/overlays/routing/overlays_nav.dart';
-import 'package:example/feature/scope/routing/scope_nav.dart';
-import 'package:example/feature/session/di/lock_scope.dart';
-import 'package:example/routing/app_navigator.dart';
+import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
+import 'package:example/feature/sub_routers/shell/routing/modules_nav.dart';
+import 'package:example/feature/independent_tab_stacks/shell/routing/multitabs_nav.dart';
+import 'package:example/feature/picker/routing/picker_nav.dart';
+import 'package:example/feature/route_scope/routing/scope_nav.dart';
+import 'package:example/feature/session/bloc/lock_bloc.dart';
+import 'package:example/feature/session/bloc/lock_event.dart';
+import 'package:example/feature/tabbed_stack/shell/routing/tabs_nav.dart';
+import 'package:example/core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Landing dashboard linking to every routing scenario. As a navigation hub it
 /// imports several feature nav extensions — natural for a landing screen.
@@ -25,43 +29,43 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          DemoTile(
+          HomeTile(
             icon: Icons.article_outlined,
             title: 'Flat detail',
             subtitle: 'Typed param + deep link — /home/detail~id=5',
             onTap: () => nav.toDetail(5),
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.animation,
             title: 'Custom transition',
             subtitle: 'Bespoke slide-up + fade via TransitionPage',
             onTap: nav.toAnimated,
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.email_outlined,
             title: 'Mailbox (master-detail)',
             subtitle: 'Split on wide / push on narrow; selection in the URL',
             onTap: nav.toMailbox,
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.tab,
             title: 'Tabs + nested stack (guarded)',
             subtitle: 'IndexedStack tabs, nested back, protected by a guard',
             onTap: nav.toTabs,
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.dynamic_feed,
             title: 'Multi-tab independent stacks',
             subtitle: 'Each tab keeps its own stack — all of it in the URL',
             onTap: nav.toMultiTabs,
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.account_tree_outlined,
             title: 'Feature sub-routers',
             subtitle: 'Shop & Blog own their registries; both reuse "detail"',
             onTap: () => nav.toModule(DemoModule.shop),
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.palette_outlined,
             title: 'Pick a color',
             subtitle: 'Push-for-result (pushForResult / popWith)',
@@ -77,7 +81,7 @@ class HomeScreen extends StatelessWidget {
               }
             },
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.help_outline,
             title: 'Confirm dialog',
             subtitle: 'Dialog-as-route (TransparentPage), returns a result',
@@ -90,25 +94,25 @@ class HomeScreen extends StatelessWidget {
               }
             },
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.exposure,
             title: 'Per-route scope',
             subtitle:
                 'A controller created/disposed with the page (RouteScope)',
             onTap: nav.toScope,
           ),
-          DemoTile(
+          HomeTile(
             icon: Icons.edit_note,
             title: 'Confirm on leave',
             subtitle: 'Block back with unsaved changes (PopScope)',
             onTap: nav.toEditor,
           ),
           const Divider(),
-          DemoTile(
+          HomeTile(
             icon: Icons.lock_outline,
             title: 'Lock session',
             subtitle: 'Then open Tabs → redirected to unlock, then restored',
-            onTap: () => LockScope.of(context).lock(),
+            onTap: () => context.read<LockBloc>().add(const LockRequested()),
           ),
         ],
       ),

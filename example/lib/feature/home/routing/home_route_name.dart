@@ -1,8 +1,6 @@
 /// Wire names for the Home feature's routes.
 enum HomeRouteName {
-  home('home'),
-  detail('detail'),
-  animated('animated');
+  home('home');
 
   const HomeRouteName(this.wire);
 

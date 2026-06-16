@@ -63,24 +63,31 @@ The Items tab also shows both `NestedNavigatorHost` extras: a `transitionDelegat
 (`NoAnimationTransitionDelegate`, instant switches) and an `onBackButtonPressed`
 hook that mirrors the AppBar's cascade for the system back button.
 
-## Layout
+## Where things live
 
 ```
 lib/
-  main.dart            entry point — runApp(ExampleApp())
-  app.dart             ExampleApp: composition root (engine + aggregated registry)
-  routing/             shared routing core
-    app_route.dart       non-sealed AppRoute base (leaf defaults)
-    app_navigator.dart   bare AppNavigator + context.navigator
-    app_registry.dart    aggregates each feature's decoders + stack normaliser
-    nav_log_observer.dart navigation telemetry (NavObserver)
-    not_found_route.dart system fallback (+ not_found_screen.dart)
-  feature/             one self-contained folder per feature, in light
-                       Clean-style sub-layers:
-    <feature>/
-      routing/   route classes (extends AppRoute), <feature>_route_name (enum),
-                 <feature>_routes (decoder contribution), <feature>_nav (extension)
-      view/      screens + widgets
-      di/        scoped state (session only: lock_controller, lock_scope)
-    home/ mailbox/ items/ overlays/ session/ scope/ editor/ multitabs/
+  main.dart      entry point — runApp(ExampleApp())
+  app.dart       ExampleApp: the root widget (wires the engine + AppScope)
+  core/
+    routing/     app_route (base), app_navigator, app_registry (composition root),
+                 nav_log_observer — the app-wide routing layer
+    di/          app_dependencies + app_scope — the app-wide DI container
+  feature/
+    home/ detail/ animated/ picker/ confirm/ route_scope/ editor/
+    session/ mailbox/ not_found/
+    tabbed_stack/           Tabs + nested stack — shell/ (host) + shared/ (item
+                            domain/ data/) + items/ item_detail/ settings/
+    independent_tab_stacks/ each tab keeps its own stack — shell/ + list/ detail/
+    sub_routers/            mounted feature sub-routers — shell/ + home/ detail/
 ```
+
+`core/` holds the app-wide routing and DI (including the registry that composes
+every feature), `app.dart` is the root widget, and each `feature/` owns its routes
+(`routing/`), screens (`view/`), and any state. State holders sit by approach:
+`bloc/` for a `Bloc` (session), `controller/` for a `ChangeNotifier` (route_scope).
+A scenario that spans several routes is a **group**: its host lives in a `shell/`
+sub-folder (`routing/`+`view/`, plus shared `domain/`+`data/` where needed) and
+the sub-features are sibling folders. This mirrors the reference architecture
+(`core/` + `feature/` + top-level `app.dart`); see the package README's
+"Organising the catalog" for the rationale.

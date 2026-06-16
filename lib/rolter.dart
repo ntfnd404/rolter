@@ -19,6 +19,7 @@ export 'src/controller/routing_information_parser.dart';
 export 'src/guard/guarded_pipeline.dart';
 export 'src/guard/pending_location.dart';
 export 'src/guard/route_guard.dart';
+export 'src/guard/stream_listenable.dart';
 export 'src/model/base64_route_codec.dart';
 export 'src/model/feature_router.dart';
 export 'src/model/keyed_route_equality.dart';

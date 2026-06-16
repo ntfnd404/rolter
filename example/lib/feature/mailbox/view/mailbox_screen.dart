@@ -1,9 +1,9 @@
-import 'package:example/di/app_scope.dart';
+import 'package:example/core/di/app_scope.dart';
 import 'package:example/feature/mailbox/routing/mailbox_nav.dart';
-import 'package:example/feature/mailbox/view/mail_detail.dart';
-import 'package:example/feature/mailbox/view/mail_list.dart';
-import 'package:example/feature/mailbox/view/mailbox_constants.dart';
-import 'package:example/routing/app_navigator.dart';
+import 'package:example/feature/mailbox/view/widgets/mail_detail.dart';
+import 'package:example/feature/mailbox/view/widgets/mail_list.dart';
+import 'package:example/feature/mailbox/view/widgets/mailbox_constants.dart';
+import 'package:example/core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Master-detail screen driven by the URL.
