@@ -31,10 +31,12 @@ class _Node implements RouteNode {
 
   @override
   int get hashCode => Object.hash(
-    name,
-    Object.hashAllUnordered(params.entries.map((e) => '${e.key}=${e.value}')),
-    Object.hashAll(children),
-  );
+        name,
+        Object.hashAllUnordered(
+          params.entries.map((e) => '${e.key}=${e.value}'),
+        ),
+        Object.hashAll(children),
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -62,10 +64,8 @@ void main() {
     // Decode the encoded Uri directly...
     final direct = codec.decode(encoded).single.toParams()['v'];
     // ...and after a full platform serialize/reparse cycle.
-    final reparsed = codec
-        .decode(Uri.parse(encoded.toString()))
-        .single
-        .toParams()['v'];
+    final reparsed =
+        codec.decode(Uri.parse(encoded.toString())).single.toParams()['v'];
     expect(reparsed, direct, reason: 'platform reparse differs from direct');
     return direct ?? '<null>';
   }

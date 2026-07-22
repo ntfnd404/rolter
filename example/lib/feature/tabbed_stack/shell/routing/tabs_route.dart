@@ -1,11 +1,11 @@
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_nav.dart';
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_route_name.dart';
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_tab.dart';
-import 'package:example/feature/tabbed_stack/shell/view/tabs_shell.dart';
-import 'package:example/feature/tabbed_stack/item_detail/routing/item_detail_route.dart';
-import 'package:example/feature/tabbed_stack/items/routing/items_route.dart';
-import 'package:example/core/routing/app_navigator.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'tabs_nav.dart';
+import 'tabs_route_name.dart';
+import 'tabs_tab.dart';
+import '../view/tabs_shell.dart';
+import '../../item_detail/routing/item_detail_route.dart';
+import '../../items/routing/items_route.dart';
+import '../../../../core/routing/app_navigator.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
@@ -48,43 +48,43 @@ final class TabsRoute extends AppRoute {
   }
 
   String get _title => switch (activeTab) {
-    TabsTab.settings => 'Settings',
-    TabsTab.items => switch (_openItem) {
-      final ItemDetailRoute item => 'Item #${item.id}',
-      _ => 'Items',
-    },
-  };
+        TabsTab.settings => 'Settings',
+        TabsTab.items => switch (_openItem) {
+            final ItemDetailRoute item => 'Item #${item.id}',
+            _ => 'Items',
+          },
+      };
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: TabsShell(
-      title: _title,
-      activeTab: activeTab,
-      onSelectTab: context.navigator.selectTab,
-      // Cascading back: a pushed detail pops the nested stack (back to the
-      // list); at the tab root, leave the Tabs section (back to Home beneath).
-      onBack: () => _openItem != null
-          ? context.navigator.popNestedItem()
-          : context.navigator.pop(),
-      itemsTab: NestedNavigatorHost<AppRoute>(
-        service: context.navigator,
-        path: [TabsRouteName.tabs.wire],
-        active: activeTab == TabsTab.items,
-        // Tab content switches instantly (no slide) — a natural tab UX, and a
-        // demo of NestedNavigatorHost.transitionDelegate.
-        transitionDelegate: const NoAnimationTransitionDelegate<Object?>(),
-        // System back mirrors the shared AppBar's cascade.
-        onBackButtonPressed: (navigator) {
-          if (navigator.canPop()) {
-            return navigator.maybePop();
-          }
-          context.navigator.pop();
-          return SynchronousFuture<bool>(true);
-        },
-      ),
-    ),
-  );
+        key: pageKey,
+        child: TabsShell(
+          title: _title,
+          activeTab: activeTab,
+          onSelectTab: context.navigator.selectTab,
+          // Cascading back: a pushed detail pops the nested stack (back to the
+          // list); at the tab root, leave the Tabs section (back to Home beneath).
+          onBack: () => _openItem != null
+              ? context.navigator.popNestedItem()
+              : context.navigator.pop(),
+          itemsTab: NestedNavigatorHost<AppRoute>(
+            service: context.navigator,
+            path: [TabsRouteName.tabs.wire],
+            active: activeTab == TabsTab.items,
+            // Tab content switches instantly (no slide) — a natural tab UX, and a
+            // demo of NestedNavigatorHost.transitionDelegate.
+            transitionDelegate: const NoAnimationTransitionDelegate<Object?>(),
+            // System back mirrors the shared AppBar's cascade.
+            onBackButtonPressed: (navigator) {
+              if (navigator.canPop()) {
+                return navigator.maybePop();
+              }
+              context.navigator.pop();
+              return SynchronousFuture<bool>(true);
+            },
+          ),
+        ),
+      );
 
   @override
   int get hashCode => Object.hash(TabsRoute, activeTab, Object.hashAll(stack));

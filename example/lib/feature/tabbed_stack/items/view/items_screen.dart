@@ -1,6 +1,6 @@
-import 'package:example/core/di/app_scope.dart';
-import 'package:example/feature/tabbed_stack/items/routing/items_nav.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import '../../../../core/di/app_scope.dart';
+import '../routing/items_nav.dart';
+import '../../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Base of the Items tab's nested navigator. Content only — the shared AppBar

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/state/routes_state.dart';
+import '../model/route_node.dart';
+import '../state/routes_state.dart';
 
 /// Generic, screen-agnostic [RouterDelegate]. Never subclassed per app: routes
 /// build their own pages polymorphically via [RouteNode.buildPage].
@@ -47,14 +47,14 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
 
   @override
   Widget build(BuildContext context) => Navigator(
-    observers: <NavigatorObserver>[_navigatorObserver],
-    transitionDelegate:
-        transitionDelegate ?? const DefaultTransitionDelegate<Object?>(),
-    pages: <Page<Object?>>[
-      for (final route in _state.root) route.buildPage(context),
-    ],
-    onDidRemovePage: _onDidRemovePage,
-  );
+        observers: <NavigatorObserver>[_navigatorObserver],
+        transitionDelegate:
+            transitionDelegate ?? const DefaultTransitionDelegate<Object?>(),
+        pages: <Page<Object?>>[
+          for (final route in _state.root) route.buildPage(context),
+        ],
+        onDidRemovePage: _onDidRemovePage,
+      );
 
   @override
   void dispose() {

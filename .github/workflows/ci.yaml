@@ -4,28 +4,133 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  analyze-and-test:
+  latest-quality:
+    name: Latest / quality and archive
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
         with:
           channel: stable
+          cache: true
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed .
-      - run: flutter analyze
+      - run: dart analyze --fatal-infos
       - run: flutter test
+      - run: flutter test --coverage
+      - run: dart run tool/check_coverage.dart
+      - run: dart doc --dry-run
+      - run: flutter pub outdated
+      - run: dart pub publish --dry-run
+      - name: Analyze example
+        working-directory: example
+        run: |
+          flutter pub get
+          flutter analyze
 
-  analyze-example:
+  minimum-sdk:
+    name: Flutter 3.24 / minimum SDK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+        with:
+          flutter-version: 3.24.0
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - run: flutter pub get
+      - run: dart analyze --fatal-infos
+      - run: flutter test
+      - name: Analyze example
+        working-directory: example
+        run: |
+          flutter pub get
+          flutter analyze
+      - name: Build external consumer on Web and Android
+        shell: bash
+        run: |
+          consumer="$(mktemp -d)/consumer"
+          flutter create --empty --platforms=android,web "$consumer"
+          cd "$consumer"
+          flutter pub add rolter --path "$GITHUB_WORKSPACE"
+          cp "$GITHUB_WORKSPACE/tool/consumer_smoke_main.dart" lib/main.dart
+          flutter analyze
+          flutter build web
+          flutter build apk --debug
+
+  dependency-lower-bounds:
+    name: Dependency lower bounds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
         with:
           channel: stable
-      - working-directory: example
-        run: flutter pub get
-      - working-directory: example
-        run: flutter analyze
+          cache: true
+      - name: Downgrade and test an isolated copy
+        shell: bash
+        run: |
+          copy="$(mktemp -d)/rolter"
+          mkdir -p "$copy"
+          rsync -a --exclude=.git --exclude=.dart_tool --exclude=build \
+            --exclude=coverage ./ "$copy/"
+          cd "$copy"
+          flutter pub downgrade
+          dart analyze --fatal-infos
+          flutter test
+          cd example
+          flutter pub downgrade
+          flutter analyze
+          cd "$GITHUB_WORKSPACE"
+          git diff --exit-code
+
+  package-quality:
+    name: Pana and package contents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Install screenshot validation tools
+        run: sudo apt-get update && sudo apt-get install -y webp
+      - name: Validate screenshot limits
+        shell: bash
+        run: |
+          test "$(find screenshots -type f | wc -l)" -le 10
+          test -z "$(find screenshots -type f -size +4096k -print -quit)"
+      - name: Run pana in an isolated copy
+        shell: bash
+        run: |
+          copy="$(mktemp -d)/rolter"
+          mkdir -p "$copy"
+          rsync -a --exclude=.git --exclude=.dart_tool --exclude=build \
+            --exclude=coverage ./ "$copy/"
+          dart pub global activate pana
+          pana --exit-code-threshold 0 "$copy"
+          cd "$copy"
+          dart pub publish --dry-run
+      - name: Verify HTTPS metadata links
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location --head \
+            https://github.com/ntfnd404/rolter >/dev/null
+          curl --fail --silent --show-error --location --head \
+            https://github.com/ntfnd404/rolter/issues >/dev/null

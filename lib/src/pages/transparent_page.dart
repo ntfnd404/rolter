@@ -30,14 +30,13 @@ class TransparentPage<T> extends Page<T> {
 
   @override
   Route<T> createRoute(BuildContext context) => PageRouteBuilder<T>(
-    settings: this,
-    opaque: false,
-    barrierColor:
-        barrierColor ??
-        Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
-    barrierDismissible: barrierDismissible,
-    transitionDuration: Duration.zero,
-    reverseTransitionDuration: Duration.zero,
-    pageBuilder: (context, animation, secondaryAnimation) => child,
-  );
+        settings: this,
+        opaque: false,
+        barrierColor:
+            barrierColor ?? Theme.of(context).colorScheme.scrim.withAlpha(128),
+        barrierDismissible: barrierDismissible,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, animation, secondaryAnimation) => child,
+      );
 }

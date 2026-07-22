@@ -1,6 +1,6 @@
-import 'package:example/feature/animated/routing/animated_route_name.dart';
-import 'package:example/feature/animated/view/animated_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'animated_route_name.dart';
+import '../view/animated_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 
@@ -20,24 +20,24 @@ final class AnimatedRoute extends AppRoute {
 
   @override
   Page<Object?> buildPage(BuildContext context) => TransitionPage(
-    key: pageKey,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-      );
+        key: pageKey,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
 
-      return FadeTransition(
-        opacity: curved,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.08),
-            end: Offset.zero,
-          ).animate(curved),
-          child: child,
-        ),
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.08),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+        child: const AnimatedScreen(),
       );
-    },
-    child: const AnimatedScreen(),
-  );
 }

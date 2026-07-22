@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
+import 'route_node.dart';
 
 /// Pure, immutable operations over the navigation tree.
 ///
@@ -68,13 +68,12 @@ List<R> mutateNodeAt<R extends RouteNode>(
         transform(node)
       else
         node.withChildren(
-              mutateNodeAt<R>(
-                node.children.cast<R>(),
-                path.sublist(1),
-                transform,
-              ),
-            )
-            as R,
+          mutateNodeAt<R>(
+            node.children.cast<R>(),
+            path.sublist(1),
+            transform,
+          ),
+        ) as R,
   ];
 }
 
@@ -139,10 +138,11 @@ List<R> popUntil<R extends RouteNode>(
 List<R> removeWhere<R extends RouteNode>(
   List<R> roots,
   bool Function(R node) test,
-) => <R>[
-  for (final node in roots)
-    if (!test(node)) node,
-];
+) =>
+    <R>[
+      for (final node in roots)
+        if (!test(node)) node,
+    ];
 
 /// Returns [roots] reset to the prefix up to and including the topmost node
 /// satisfying [test], with [route] pushed on top. If no node matches, the
@@ -174,8 +174,7 @@ String? hierarchyViolation<R extends RouteNode>(List<R> roots) {
         final strict = node as StrictHierarchy;
         for (final child in node.children) {
           if (!strict.allowsChild(child)) {
-            violation =
-                '"${node.name}" does not allow child "${child.name}"';
+            violation = '"${node.name}" does not allow child "${child.name}"';
 
             return;
           }

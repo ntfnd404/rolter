@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_tree.dart';
-import 'package:rolter/src/navigation/navigation_service.dart';
+import '../model/route_node.dart';
+import '../model/route_tree.dart';
+import '../navigation/navigation_service.dart';
 
 /// Hosts a child [Navigator] over the children of the tree node at [path].
 ///
@@ -94,9 +94,8 @@ class _NestedNavigatorHostState<R extends RouteNode>
 
     widget.service.mutateAt(
       widget.path,
-      (node) =>
-          node.withChildren(removeNodeByKey<RouteNode>(node.children, key))
-              as R,
+      (node) => node
+          .withChildren(removeNodeByKey<RouteNode>(node.children, key)) as R,
     );
   }
 
@@ -146,8 +145,7 @@ class _NestedNavigatorHostState<R extends RouteNode>
 
     return Navigator(
       observers: <NavigatorObserver>[_navigatorObserver],
-      transitionDelegate:
-          widget.transitionDelegate ??
+      transitionDelegate: widget.transitionDelegate ??
           const DefaultTransitionDelegate<Object?>(),
       pages: <Page<Object?>>[
         for (final child in node.children) child.buildPage(context),

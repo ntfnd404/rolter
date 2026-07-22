@@ -11,9 +11,10 @@ class _BlockGuard with ChangeNotifier implements RouteGuard<TestRoute> {
     List<List<TestRoute>> history,
     List<TestRoute> requested,
     Map<String, Object?> context,
-  ) => requested.any((r) => r.name == 'blocked')
-      ? const GuardResult.cancel()
-      : GuardResult.proceed(requested);
+  ) =>
+      requested.any((r) => r.name == 'blocked')
+          ? const GuardResult.cancel()
+          : GuardResult.proceed(requested);
 }
 
 /// Redirects to `lock` while [on], remembering the intent in a

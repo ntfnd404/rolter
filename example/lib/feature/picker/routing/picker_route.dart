@@ -1,6 +1,6 @@
-import 'package:example/feature/picker/routing/picker_route_name.dart';
-import 'package:example/feature/picker/view/picker_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'picker_route_name.dart';
+import '../view/picker_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// Full-screen color picker pushed for a result.

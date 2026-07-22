@@ -37,10 +37,12 @@ class _Node implements RouteNode {
 
   @override
   int get hashCode => Object.hash(
-    name,
-    Object.hashAllUnordered(params.entries.map((e) => '${e.key}=${e.value}')),
-    Object.hashAll(children),
-  );
+        name,
+        Object.hashAllUnordered(
+          params.entries.map((e) => '${e.key}=${e.value}'),
+        ),
+        Object.hashAll(children),
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -74,7 +76,12 @@ void main() {
 
   test('round-trips a mounted subtree, resolved via sub-registry', () {
     const tree = [
-      _Node('shop', children: [_Node('detail', params: {'id': '1'})]),
+      _Node(
+        'shop',
+        children: [
+          _Node('detail', params: {'id': '1'}),
+        ],
+      ),
     ];
     final decoded = codec.decode(codec.encode(tree));
 

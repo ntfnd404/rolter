@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
 
 /// Processes one tree snapshot: runs the apply pipeline (normalise, later
 /// guards) and commits the result.
-typedef SnapshotProcessor<R extends RouteNode> =
-    Future<void> Function(List<R> snapshot);
+typedef SnapshotProcessor<R extends RouteNode> = Future<void> Function(
+  List<R> snapshot,
+);
 
 /// Serialises navigation: every intent enqueues a full target snapshot and the
 /// queue processes them one at a time, so async work (a guard's `await`) never
@@ -18,23 +19,14 @@ class NavigationQueue<R extends RouteNode> {
   NavigationQueue(this._process);
   final SnapshotProcessor<R> _process;
   final List<List<R>> _buffer = <List<R>>[];
-  final List<Completer<void>> _idle = <Completer<void>>[];
   Future<void>? _running;
 
   /// Whether the queue is currently draining.
   bool get isProcessing => _running != null;
 
   /// Completes once the queue is idle — useful for tests.
-  Future<void> get processingCompleted {
-    if (_running == null) {
-      return SynchronousFuture<void>(null);
-    }
-
-    final completer = Completer<void>();
-    _idle.add(completer);
-
-    return completer.future;
-  }
+  Future<void> get processingCompleted =>
+      _running ?? SynchronousFuture<void>(null);
 
   /// Enqueues [snapshot] and starts draining if idle.
   void add(List<R> snapshot) {
@@ -49,11 +41,6 @@ class NavigationQueue<R extends RouteNode> {
       }
     } finally {
       _running = null;
-      final pending = List<Completer<void>>.of(_idle);
-      _idle.clear();
-      for (final completer in pending) {
-        completer.complete();
-      }
     }
   }
 }

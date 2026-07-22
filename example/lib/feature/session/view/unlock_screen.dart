@@ -1,5 +1,5 @@
-import 'package:example/feature/session/bloc/lock_bloc.dart';
-import 'package:example/feature/session/bloc/lock_event.dart';
+import '../bloc/lock_bloc.dart';
+import '../bloc/lock_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

@@ -40,11 +40,11 @@ class TransitionPage<T> extends Page<T> {
 
   @override
   Route<T> createRoute(BuildContext context) => PageRouteBuilder<T>(
-    settings: this,
-    opaque: opaque,
-    transitionDuration: transitionDuration,
-    reverseTransitionDuration: reverseTransitionDuration,
-    pageBuilder: (context, animation, secondaryAnimation) => child,
-    transitionsBuilder: transitionsBuilder,
-  );
+        settings: this,
+        opaque: opaque,
+        transitionDuration: transitionDuration,
+        reverseTransitionDuration: reverseTransitionDuration,
+        pageBuilder: (context, animation, secondaryAnimation) => child,
+        transitionsBuilder: transitionsBuilder,
+      );
 }

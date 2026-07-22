@@ -25,7 +25,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.push(const TestRoute('b'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['a', 'b']);
       expect(state.top.name, 'b');
@@ -37,7 +37,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.pop();
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['a']);
       expect(state.canPop, isFalse);
@@ -48,7 +48,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.pop();
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['a']);
     });
@@ -58,7 +58,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.replaceTop(const TestRoute('c'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['a', 'c']);
     });
@@ -68,7 +68,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.clearAndPush(const TestRoute('c'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['c']);
     });
@@ -79,7 +79,7 @@ void main() {
 
       // Same runtime type as the top -> replaceTop.
       state.pushOrReplaceTop(const TestRoute('b'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['b']);
     });
@@ -95,7 +95,7 @@ void main() {
         (node) =>
             const TestRoute('tabs', children: [TestRoute('a'), TestRoute('b')]),
       );
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.first.children.map((c) => c.name), ['a', 'b']);
     });
@@ -111,7 +111,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.popUntil((r) => r.name == 'a');
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['a']);
     });
@@ -125,7 +125,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.removeWhere((r) => r.name.startsWith('x'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['keep']);
     });
@@ -135,7 +135,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.pushAndResetTo(const TestRoute('c'), (r) => r.name == 'a');
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(state.root.map((r) => r.name), ['a', 'c']);
     });
@@ -152,9 +152,9 @@ void main() {
       addTearDown(state.dispose);
 
       state.push(const TestRoute('b'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       state.pop();
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(observer.transitions.length, 2);
       expect(observer.transitions[0].entered, {const ValueKey('b')});
@@ -174,7 +174,7 @@ void main() {
       addTearDown(state.dispose);
 
       state.setRoot([const TestRoute('a')]);
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(observer.transitions, isEmpty);
     });
@@ -199,12 +199,12 @@ void main() {
 
       // No-op: same stack.
       state.setRoot([const TestRoute('a')]);
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       expect(notifications, 0);
 
       // Real change.
       state.push(const TestRoute('b'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       expect(notifications, 1);
     });
   });
@@ -215,9 +215,9 @@ void main() {
       addTearDown(state.dispose);
 
       final result = state.pushForResult<int>(const TestRoute('picker'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       state.popWith<int>(42);
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(await result, 42);
       expect(state.root.map((r) => r.name), ['home']);
@@ -228,10 +228,10 @@ void main() {
       addTearDown(state.dispose);
 
       final result = state.pushForResult<int>(const TestRoute('picker'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       // Picker is dropped without popWith.
       state.clearAndPush(const TestRoute('home'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
 
       expect(await result, isNull);
     });
@@ -240,7 +240,7 @@ void main() {
       final state = stateWith([const TestRoute('home')]);
 
       final result = state.pushForResult<int>(const TestRoute('picker'));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       state.dispose();
 
       expect(await result, isNull);
@@ -256,7 +256,7 @@ void main() {
         addTearDown(state.dispose);
 
         final first = state.pushForResult<int>(const TestRoute('picker'));
-        await state.queue.processingCompleted;
+        await state.processingCompleted;
 
         expect(
           () => state.pushForResult<int>(const TestRoute('picker')),
@@ -266,7 +266,7 @@ void main() {
         // Drop the picker; the first (still-registered) awaiter completes with
         // null rather than hanging.
         state.pop();
-        await state.queue.processingCompleted;
+        await state.processingCompleted;
         expect(await first, isNull);
       },
     );

@@ -1,12 +1,11 @@
-import 'package:rolter/src/model/route_node.dart';
+import 'route_node.dart';
 
 /// Builds a typed [R] node from its decoded URL [params] and already-decoded
 /// [children]. One decoder is registered per route name.
-typedef RouteDecoder<R extends RouteNode> =
-    R Function(
-      Map<String, String> params,
-      List<R> children,
-    );
+typedef RouteDecoder<R extends RouteNode> = R Function(
+  Map<String, String> params,
+  List<R> children,
+);
 
 /// Maps a route name to its decoder (Option B): the engine decodes the tree
 /// generically; the app only registers typed routes.

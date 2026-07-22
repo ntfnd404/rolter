@@ -1,6 +1,6 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
-import 'package:example/core/routing/app_navigator.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../routing/demo_module.dart';
+import '../../../../core/routing/app_navigator.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rolter/rolter.dart';

@@ -1,6 +1,6 @@
-import 'package:example/feature/detail/routing/detail_route_name.dart';
-import 'package:example/feature/detail/view/detail_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'detail_route_name.dart';
+import '../view/detail_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// Flat detail with a typed [id], pushed on top of Home (`/home/detail~id=5`).

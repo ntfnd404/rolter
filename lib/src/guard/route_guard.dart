@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/guard/guard_result.dart';
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
+import 'guard_result.dart';
 
 export 'guard_result.dart';
 export 'nav_decision.dart';

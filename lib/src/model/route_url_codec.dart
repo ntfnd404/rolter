@@ -1,4 +1,4 @@
-import 'package:rolter/src/model/route_node.dart';
+import 'route_node.dart';
 
 /// Bidirectional projection between the navigation tree (`List<R>`) and a
 /// [Uri].

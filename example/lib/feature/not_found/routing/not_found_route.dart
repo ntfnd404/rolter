@@ -1,5 +1,5 @@
-import 'package:example/feature/not_found/view/not_found_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../view/not_found_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 
@@ -23,7 +23,7 @@ class NotFoundRoute extends AppRoute implements HistoryExcluded {
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: NotFoundScreen(attempted: attempted),
-  );
+        key: pageKey,
+        child: NotFoundScreen(attempted: attempted),
+      );
 }

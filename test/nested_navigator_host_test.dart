@@ -26,12 +26,12 @@ class _Leaf with KeyedRouteEquality {
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: Scaffold(
-      appBar: AppBar(title: Text('$name-title')),
-      body: Center(child: Text('$name-body')),
-    ),
-  );
+        key: pageKey,
+        child: Scaffold(
+          appBar: AppBar(title: Text('$name-title')),
+          body: Center(child: Text('$name-body')),
+        ),
+      );
 }
 
 /// A shell node whose page hosts a child navigator over its [children].
@@ -56,12 +56,12 @@ class _Shell implements RouteNode {
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: NestedNavigatorHost<RouteNode>(
-      service: NavigatorScope.of<NavigationController<RouteNode>>(context),
-      path: const ['shell'],
-    ),
-  );
+        key: pageKey,
+        child: NestedNavigatorHost<RouteNode>(
+          service: NavigatorScope.of<NavigationController<RouteNode>>(context),
+          path: const ['shell'],
+        ),
+      );
 
   @override
   int get hashCode => Object.hashAll(children);
@@ -103,7 +103,7 @@ void main() {
       const ['shell'],
       (node) => node.withChildren([...node.children, const _Leaf('detail')]),
     );
-    await state.queue.processingCompleted;
+    await state.processingCompleted;
     await tester.pumpAndSettle();
 
     expect(find.text('detail-body'), findsOneWidget);
@@ -111,7 +111,7 @@ void main() {
     // The inner AppBar back button pops the nested navigator, which must mutate
     // the hosted subtree (not the root stack) via mutateAt + removeNodeByKey.
     await tester.tap(find.byType(BackButton));
-    await state.queue.processingCompleted;
+    await state.processingCompleted;
     await tester.pumpAndSettle();
 
     expect(find.text('detail-body'), findsNothing);

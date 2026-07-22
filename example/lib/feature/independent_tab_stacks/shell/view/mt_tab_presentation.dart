@@ -1,4 +1,4 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
+import '../routing/mt_tab.dart';
 import 'package:flutter/material.dart';
 
 /// Display metadata for [MtTab] — presentation concerns kept out of the identity
@@ -7,12 +7,12 @@ import 'package:flutter/material.dart';
 /// localizable.
 extension MtTabPresentation on MtTab {
   IconData get icon => switch (this) {
-    MtTab.a => Icons.inbox_outlined,
-    MtTab.b => Icons.archive_outlined,
-  };
+        MtTab.a => Icons.inbox_outlined,
+        MtTab.b => Icons.archive_outlined,
+      };
 
   String get label => switch (this) {
-    MtTab.a => 'Inbox',
-    MtTab.b => 'Archive',
-  };
+        MtTab.a => 'Inbox',
+        MtTab.b => 'Archive',
+      };
 }

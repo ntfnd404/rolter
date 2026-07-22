@@ -2,17 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_tree.dart' as tree;
-import 'package:rolter/src/state/nav_observer.dart';
-import 'package:rolter/src/state/navigation_queue.dart';
-import 'package:rolter/src/state/pending_results.dart';
+import '../model/route_node.dart';
+import '../model/route_tree.dart' as tree;
+import 'nav_observer.dart';
+import 'navigation_queue.dart';
+import 'pending_results.dart';
 
 /// Transforms a requested stack into the committed stack — typically normalises
 /// it and folds it through guards. May be sync or async; the queue awaits it
 /// either way.
-typedef ApplyPipeline<R extends RouteNode> =
-    FutureOr<List<R>> Function(List<R> requested);
+typedef ApplyPipeline<R extends RouteNode> = FutureOr<List<R>> Function(
+  List<R> requested,
+);
 
 /// Single source of truth for the navigation tree.
 ///
@@ -46,8 +47,11 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Whether the root stack can pop.
   bool get canPop => _root.length > 1;
 
-  /// Exposes the queue so callers can await idle (e.g. tests).
-  NavigationQueue<R> get queue => _queue;
+  /// Completes when all navigation requests queued so far have been processed.
+  ///
+  /// This lets integrations wait for asynchronous guards to settle without
+  /// exposing the internal navigation queue.
+  Future<void> get processingCompleted => _queue.processingCompleted;
 
   // Latest enqueued target (or committed root) so rapid relative ops compose.
   List<R> get _base => _pending ?? _root;

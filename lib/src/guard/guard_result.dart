@@ -1,5 +1,5 @@
-import 'package:rolter/src/guard/nav_decision.dart';
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
+import 'nav_decision.dart';
 
 /// Outcome of a [RouteGuard]: continue with [stack], or cancel navigation.
 class GuardResult<R extends RouteNode> {
@@ -8,8 +8,8 @@ class GuardResult<R extends RouteNode> {
 
   /// Cancels navigation, leaving the current stack unchanged.
   const GuardResult.cancel()
-    : stack = const <Never>[],
-      decision = NavDecision.cancel;
+      : stack = const <Never>[],
+        decision = NavDecision.cancel;
 
   /// The stack to proceed with, or empty when [decision] is
   /// [NavDecision.cancel].

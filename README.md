@@ -16,13 +16,28 @@ typed, URL-serializable route tree and built-in nested navigation.
 This package is in early development. The API is not yet stable and may
 change significantly between versions.
 
+Rolter requires Flutter 3.24 or later and Dart 3.5 or later.
+
+## Architecture
+
+![Rolter architecture](screenshots/architecture.webp)
+
+The URL codec reconstructs typed route nodes, guards settle the requested
+tree, and `RoutesState` commits a single source of truth rendered by root and
+nested navigators.
+
+![Deep link followed by nested and root back navigation](screenshots/deep_link_nested_back.gif)
+
+The animation opens a deep link into a nested stack, then removes the nested
+detail before returning through the root stack.
+
 ## Getting started
 
 Add `rolter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  rolter: ^0.0.1
+  rolter: ^0.1.0
 ```
 
 ## Usage
@@ -76,6 +91,9 @@ renders and deep-links without it.
 
 See the [`example/`](example/) app for nested navigation, tabs, route guards,
 push-for-result, dialog-as-route, and per-route dependency scopes.
+
+Import only `package:rolter/rolter.dart`. Anything under
+`package:rolter/src/` is implementation detail and may change in any release.
 
 ## Route identity (important)
 
@@ -234,6 +252,18 @@ strip the fragment (OAuth / Telegram): the whole route survives as one token
 (`/eyJuIjoiaG9tZSJ9`). Or write your own, as long as `decode(encode(tree))`
 round-trips.
 
+### URL compatibility policy
+
+The built-in encoder always writes the current wire format. Before 1.0, a
+breaking URL grammar change increments the minor version, and the decoder keeps
+accepting the previous minor's format for at least one complete minor release
+cycle. Security-critical fixes may shorten that window and will be called out
+prominently in the changelog.
+
+Deep links often outlive package constraints. If an application replaces a
+built-in codec or changes its route names or serialized parameters, the
+application owns the corresponding migration and backward-decoding policy.
+
 ## Feature sub-routers (namespace isolation)
 
 A flat registry shares one route-name namespace. When features ship as separate
@@ -326,6 +356,12 @@ ways:
 See [`example/`](example/) for a worked feature-first layout.
 
 ## Additional information
+
+Rolter uses debug assertions to catch developer mistakes such as duplicate
+page keys, invalid route names, and hierarchy violations during development.
+Assertions are disabled in release builds and are not production input
+validation. Applications must validate and authorize all external route data
+before using it for security-sensitive behavior.
 
 - Source code: https://github.com/ntfnd404/rolter
 - Issue tracker: https://github.com/ntfnd404/rolter/issues

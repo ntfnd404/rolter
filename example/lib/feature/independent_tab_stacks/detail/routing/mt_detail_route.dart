@@ -1,6 +1,6 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/detail/view/mt_detail_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../../shell/routing/mt_tab.dart';
+import '../view/mt_detail_screen.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// A detail pushed into a tab's stack.

@@ -16,9 +16,9 @@ class NoAnimationTransitionDelegate<T> extends TransitionDelegate<T> {
   Iterable<RouteTransitionRecord> resolve({
     required List<RouteTransitionRecord> newPageRouteHistory,
     required Map<RouteTransitionRecord?, RouteTransitionRecord>
-    locationToExitingPageRoute,
+        locationToExitingPageRoute,
     required Map<RouteTransitionRecord?, List<RouteTransitionRecord>>
-    pageRouteToPagelessRoutes,
+        pageRouteToPagelessRoutes,
   }) {
     final results = <RouteTransitionRecord>[];
 
@@ -32,8 +32,7 @@ class NoAnimationTransitionDelegate<T> extends TransitionDelegate<T> {
     for (final exiting in locationToExitingPageRoute.values) {
       if (exiting.isWaitingForExitingDecision) {
         exiting.markForComplete();
-        final pageless =
-            pageRouteToPagelessRoutes[exiting] ??
+        final pageless = pageRouteToPagelessRoutes[exiting] ??
             const <RouteTransitionRecord>[];
         for (final route in pageless) {
           route.markForComplete();

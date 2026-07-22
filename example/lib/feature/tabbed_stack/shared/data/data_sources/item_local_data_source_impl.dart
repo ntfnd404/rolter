@@ -1,5 +1,5 @@
-import 'package:example/feature/tabbed_stack/shared/data/data_sources/item_local_data_source.dart';
-import 'package:example/feature/tabbed_stack/shared/domain/entities/item.dart';
+import 'item_local_data_source.dart';
+import '../../domain/entities/item.dart';
 
 /// In-memory [ItemLocalDataSource] holding a fixed demo data set.
 final class ItemLocalDataSourceImpl implements ItemLocalDataSource {

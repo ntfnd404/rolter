@@ -1,6 +1,6 @@
-import 'package:example/feature/mailbox/routing/mailbox_route_name.dart';
-import 'package:example/feature/mailbox/view/mailbox_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'mailbox_route_name.dart';
+import '../view/mailbox_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// Master-detail route. [selectedId] lives in the URL (`~sel=N`), so the
@@ -24,9 +24,9 @@ final class MailboxRoute extends AppRoute {
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: MailboxScreen(selectedId: selectedId),
-  );
+        key: pageKey,
+        child: MailboxScreen(selectedId: selectedId),
+      );
 
   @override
   int get hashCode => Object.hash(MailboxRoute, selectedId);

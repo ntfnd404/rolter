@@ -1,6 +1,6 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
-import 'package:example/feature/sub_routers/detail/view/module_detail_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../../shell/routing/demo_module.dart';
+import '../view/module_detail_screen.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// A module's detail (route name `detail`, local to the module's registry — both
@@ -22,7 +22,7 @@ final class ModuleDetailRoute extends AppRoute {
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: ModuleDetailScreen(module: module, id: id),
-  );
+        key: pageKey,
+        child: ModuleDetailScreen(module: module, id: id),
+      );
 }

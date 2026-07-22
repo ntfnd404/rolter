@@ -1,6 +1,6 @@
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_registry.dart';
-import 'package:rolter/src/model/route_url_codec.dart';
+import 'route_node.dart';
+import 'route_registry.dart';
+import 'route_url_codec.dart';
 
 /// Default [RouteUrlCodec]: encodes the navigation tree to a [Uri] and back,
 /// generically, via the [RouteRegistry].
@@ -92,10 +92,14 @@ class TreeUrlCodec<R extends RouteNode> implements RouteUrlCodec<R> {
       return roots;
     }
     final top = roots.last;
-    final merged = _registry.decode(top.name, {
-      ...query,
-      ...top.toParams(),
-    }, top.children.cast<R>());
+    final merged = _registry.decode(
+      top.name,
+      {
+        ...query,
+        ...top.toParams(),
+      },
+      top.children.cast<R>(),
+    );
 
     return <R>[...roots.sublist(0, roots.length - 1), merged];
   }

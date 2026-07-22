@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/guard/route_guard.dart';
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
+import 'route_guard.dart';
 
 /// Builds an apply-pipeline from an ordered list of [RouteGuard]s.
 ///

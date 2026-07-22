@@ -1,4 +1,4 @@
-import 'package:example/feature/tabbed_stack/shared/domain/entities/item.dart';
+import '../../domain/entities/item.dart';
 
 /// Local source of items — a stand-in for an API or database.
 abstract interface class ItemLocalDataSource {

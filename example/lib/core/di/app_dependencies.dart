@@ -1,5 +1,5 @@
-import 'package:example/feature/tabbed_stack/shared/domain/repositories/item_repository.dart';
-import 'package:example/feature/mailbox/domain/repositories/mail_repository.dart';
+import '../../feature/tabbed_stack/shared/domain/repositories/item_repository.dart';
+import '../../feature/mailbox/domain/repositories/mail_repository.dart';
 
 /// The app's shared dependencies, wired once in the composition root and read
 /// app-wide via `AppScope`.

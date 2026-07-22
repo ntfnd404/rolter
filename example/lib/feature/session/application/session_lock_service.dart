@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:example/feature/session/application/session_lock.dart';
+import 'session_lock.dart';
 
 /// The session lock's source of truth — **ephemeral, in-memory application
 /// state** (resets on restart; nothing is persisted, so this is a service, not a

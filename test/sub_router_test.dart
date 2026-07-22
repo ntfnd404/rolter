@@ -69,23 +69,18 @@ void main() {
     });
 
     test('same child name resolves per mount (isolation)', () {
-      final shopDetail = codec
-          .decode(Uri.parse('/shop/.detail'))
-          .single
-          .children
-          .single;
-      final blogDetail = codec
-          .decode(Uri.parse('/blog/.detail'))
-          .single
-          .children
-          .single;
+      final shopDetail =
+          codec.decode(Uri.parse('/shop/.detail')).single.children.single;
+      final blogDetail =
+          codec.decode(Uri.parse('/blog/.detail')).single.children.single;
       expect(shopDetail.name, blogDetail.name); // both literally "detail"
       expect(_tagOf(shopDetail), 'shop:');
       expect(_tagOf(blogDetail), 'blog:');
     });
 
     test('an unknown child name uses the sub-registry fallback', () {
-      final child = codec.decode(Uri.parse('/shop/.zzz')).single.children.single;
+      final child =
+          codec.decode(Uri.parse('/shop/.zzz')).single.children.single;
       expect(_tagOf(child), 'shop:');
       expect(child.name, 'shop-404');
     });

@@ -45,83 +45,54 @@ class _R implements RouteNode {
 }
 
 void main() {
-  group('route_tree', () {
-    test('removeNodeByKey removes the matching node', () {
-      final roots = [const _R('a'), const _R('b')];
-      final result = removeNodeByKey(roots, const ValueKey('b'));
-      expect(result.map((r) => r.name), ['a']);
+  group('RoutesState tree operations', () {
+    RoutesState<_R> state(List<_R> initial) =>
+        RoutesState<_R>(initial, (requested) => requested);
+
+    test('removeByPageKey removes the matching node', () async {
+      final routes = state([const _R('a'), const _R('b')]);
+      routes.removeByPageKey(const ValueKey('b'));
+      await routes.processingCompleted;
+      expect(routes.root.map((route) => route.name), ['a']);
     });
 
-    test('nodeAtPath descends by name', () {
-      final tree = [
-        const _R(
-          'a',
-          children: [
-            _R('b', children: [_R('c')]),
-          ],
-        ),
-      ];
-      expect(nodeAtPath(tree, ['a', 'b', 'c'])?.name, 'c');
-      expect(nodeAtPath(tree, ['a', 'x']), isNull);
-    });
-
-    test('mutateNodeAt copies the spine and transforms the target', () {
-      final tree = [
+    test('mutateAt copies the spine and transforms the target', () async {
+      final routes = state([
         const _R('a', children: [_R('b')]),
-      ];
-      final result = mutateNodeAt<_R>(
-        tree,
+      ]);
+      routes.mutateAt(
         ['a', 'b'],
         (node) => const _R('b', children: [_R('c')]),
       );
-      expect(nodeAtPath(result, ['a', 'b', 'c'])?.name, 'c');
-      // Original is untouched (immutable).
-      expect(nodeAtPath(tree, ['a', 'b', 'c']), isNull);
+      await routes.processingCompleted;
+      expect(routes.root.single.children.single.children.single.name, 'c');
     });
 
-    test('collectPageKeys gathers the whole tree', () {
-      final tree = [
-        const _R('a', children: [_R('b')]),
-        const _R('c'),
-      ];
-      expect(collectPageKeys(tree), {
-        const ValueKey('a'),
-        const ValueKey('b'),
-        const ValueKey('c'),
-      });
+    test('popUntil keeps the topmost match and no-ops without one', () async {
+      final routes = state([const _R('a'), const _R('b'), const _R('c')]);
+      routes.popUntil((route) => route.name == 'b');
+      await routes.processingCompleted;
+      expect(routes.root.map((route) => route.name), ['a', 'b']);
+      routes.popUntil((route) => route.name == 'z');
+      await routes.processingCompleted;
+      expect(routes.root.map((route) => route.name), ['a', 'b']);
     });
 
-    test('popUntil keeps up to the topmost match (unchanged if none)', () {
-      const stack = [_R('a'), _R('b'), _R('c')];
-      expect(popUntil(stack, (r) => r.name == 'b').map((r) => r.name), [
-        'a',
-        'b',
-      ]);
-      expect(popUntil(stack, (r) => r.name == 'z').map((r) => r.name), [
-        'a',
-        'b',
-        'c',
-      ]);
+    test('removeWhere drops every matching node', () async {
+      final routes = state([const _R('a'), const _R('b'), const _R('a')]);
+      routes.removeWhere((route) => route.name == 'a');
+      await routes.processingCompleted;
+      expect(routes.root.map((route) => route.name), ['b']);
     });
 
-    test('removeWhere drops every matching node', () {
-      const stack = [_R('a'), _R('b'), _R('a')];
-      final kept = removeWhere(stack, (r) => r.name == 'a').map((r) => r.name);
-      expect(kept, ['b']);
-    });
-
-    test('pushAndResetTo resets to the match, else full reset', () {
-      const stack = [_R('a'), _R('b'), _R('c')];
-      expect(
-        pushAndResetTo(stack, const _R('d'), (r) => r.name == 'a')
-            .map((r) => r.name),
-        ['a', 'd'],
-      );
-      expect(
-        pushAndResetTo(stack, const _R('d'), (r) => r.name == 'z')
-            .map((r) => r.name),
-        ['d'],
-      );
+    test('pushAndResetTo keeps a match or performs a full reset', () async {
+      final routes = state([const _R('a'), const _R('b'), const _R('c')]);
+      routes.pushAndResetTo(const _R('d'), (route) => route.name == 'a');
+      await routes.processingCompleted;
+      expect(routes.root.map((route) => route.name), ['a', 'd']);
+      routes.pushAndResetTo(const _R('e'), (route) => route.name == 'z');
+      await routes.processingCompleted;
+      expect(routes.root.map((route) => route.name), ['e']);
     });
   });
 

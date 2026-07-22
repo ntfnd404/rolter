@@ -1,4 +1,4 @@
-import 'package:example/feature/mailbox/domain/entities/mail.dart';
+import '../../domain/entities/mail.dart';
 
 /// Local source of mail items — a stand-in for an API or database.
 ///

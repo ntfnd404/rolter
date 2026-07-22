@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/state/nav_observer.dart';
+import '../model/route_node.dart';
+import 'nav_observer.dart';
 
 /// Browser-like back/forward over committed navigation states.
 ///
@@ -19,7 +19,7 @@ class NavigationHistory<R extends RouteNode> extends ChangeNotifier
   /// Creates a history that replays entries through [restore], keeping at most
   /// [limit] of them.
   NavigationHistory(this.restore, {this.limit = 50})
-    : assert(limit > 0, 'limit must be positive');
+      : assert(limit > 0, 'limit must be positive');
 
   /// Re-commits a remembered stack (e.g. `RoutesState.setRoot`).
   final void Function(List<R> stack) restore;

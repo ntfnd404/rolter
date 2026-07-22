@@ -74,9 +74,10 @@ class _NoAnimationPageRoute<T> extends PageRoute<T> {
     BuildContext context,
     Animation<double> animation,
     Animation<double> secondaryAnimation,
-  ) => Semantics(
-    scopesRoute: true,
-    explicitChildNodes: true,
-    child: _page.child,
-  );
+  ) =>
+      Semantics(
+        scopesRoute: true,
+        explicitChildNodes: true,
+        child: _page.child,
+      );
 }

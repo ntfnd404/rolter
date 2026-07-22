@@ -1,4 +1,4 @@
-import 'package:example/core/routing/app_route.dart';
+import 'app_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rolter/rolter.dart';
 

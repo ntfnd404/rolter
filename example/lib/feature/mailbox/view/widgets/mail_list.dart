@@ -1,6 +1,6 @@
-import 'package:example/feature/mailbox/domain/entities/mail.dart';
-import 'package:example/feature/mailbox/routing/mailbox_nav.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import '../../domain/entities/mail.dart';
+import '../../routing/mailbox_nav.dart';
+import '../../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 class MailList extends StatelessWidget {

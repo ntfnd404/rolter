@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_registry.dart';
-import 'package:rolter/src/model/route_url_codec.dart';
+import 'route_node.dart';
+import 'route_registry.dart';
+import 'route_url_codec.dart';
 
 /// An opaque [RouteUrlCodec] that serialises the whole tree to base64url JSON
 /// in a single path segment (e.g. `/eyJuIjoiaG9tZSJ9`).
@@ -79,9 +79,8 @@ class Base64RouteCodec<R extends RouteNode> implements RouteUrlCodec<R> {
       };
       final childRegistry = registry.childRegistryOf(name) ?? registry;
       final childData = raw['c'];
-      final children = childData is List
-          ? _fromJson(childData, childRegistry)
-          : <R>[];
+      final children =
+          childData is List ? _fromJson(childData, childRegistry) : <R>[];
       result.add(registry.decode(name, params, children));
     }
 

@@ -1,9 +1,9 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab_route.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/mt_tab_presentation.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/multitabs_shell.dart';
-import 'package:example/feature/independent_tab_stacks/detail/routing/mt_detail_route.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'mt_tab.dart';
+import 'mt_tab_route.dart';
+import '../view/mt_tab_presentation.dart';
+import '../view/multitabs_shell.dart';
+import '../../detail/routing/mt_detail_route.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
@@ -21,7 +21,7 @@ import 'package:rolter/rolter.dart';
 /// and `detail` sub-features into one tabbed section.
 final class MultiTabsRoute extends AppRoute implements StrictHierarchy {
   MultiTabsRoute({this.activeTab = MtTab.a, List<AppRoute>? tabs})
-    : tabs = tabs ?? [MtTabRoute(MtTab.a), MtTabRoute(MtTab.b)];
+      : tabs = tabs ?? [MtTabRoute(MtTab.a), MtTabRoute(MtTab.b)];
 
   final MtTab activeTab;
   final List<AppRoute> tabs;
@@ -57,14 +57,14 @@ final class MultiTabsRoute extends AppRoute implements StrictHierarchy {
 
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: MultiTabsShell(
-      activeTab: activeTab,
-      title: _title,
-      // Back leaves the section unless the active tab has a pushed detail.
-      activeTabCanPop: _activeTab.stack.length > 1,
-    ),
-  );
+        key: pageKey,
+        child: MultiTabsShell(
+          activeTab: activeTab,
+          title: _title,
+          // Back leaves the section unless the active tab has a pushed detail.
+          activeTabCanPop: _activeTab.stack.length > 1,
+        ),
+      );
 
   @override
   int get hashCode =>
