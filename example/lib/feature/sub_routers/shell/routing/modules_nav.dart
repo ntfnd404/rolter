@@ -1,7 +1,7 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
-import 'package:example/feature/sub_routers/shell/routing/module_shell_route.dart';
-import 'package:example/feature/sub_routers/detail/routing/module_detail_route.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import 'demo_module.dart';
+import 'module_shell_route.dart';
+import '../../detail/routing/module_detail_route.dart';
+import '../../../../core/routing/app_navigator.dart';
 
 /// Modules feature navigation sugar, added to the shared [AppNavigator].
 extension ModulesNav on AppNavigator {

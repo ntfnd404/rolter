@@ -1,6 +1,5 @@
-import 'package:example/core/di/app_dependencies.dart';
+import 'app_dependencies.dart';
 import 'package:flutter/widgets.dart';
-import 'package:rolter/rolter.dart';
 
 /// Exposes the single [AppDependencies] container to the whole app.
 ///
@@ -12,9 +11,13 @@ class AppScope extends InheritedWidget {
 
   final AppDependencies dependencies;
 
-  static AppDependencies of(BuildContext context) => context
-      .readScopeOrThrow<AppScope>('AppScope not found above this widget.')
-      .dependencies;
+  static AppDependencies of(BuildContext context) {
+    final scope = context.getInheritedWidgetOfExactType<AppScope>();
+    if (scope == null) {
+      throw FlutterError('AppScope not found above this widget.');
+    }
+    return scope.dependencies;
+  }
 
   @override
   bool updateShouldNotify(AppScope oldWidget) =>

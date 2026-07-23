@@ -1,4 +1,4 @@
-import 'package:example/feature/mailbox/domain/entities/mail.dart';
+import '../../domain/entities/mail.dart';
 import 'package:flutter/material.dart';
 
 class MailDetail extends StatelessWidget {

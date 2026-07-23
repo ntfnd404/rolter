@@ -1,4 +1,4 @@
-import 'package:example/feature/mailbox/domain/entities/mail.dart';
+import '../entities/mail.dart';
 
 /// Reads mail items. The contract lives in `domain/`; the UI depends on this,
 /// not on a concrete source or impl.

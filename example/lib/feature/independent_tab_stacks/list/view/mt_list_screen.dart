@@ -1,7 +1,7 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/multitabs_nav.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/mt_tab_presentation.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import '../../shell/routing/mt_tab.dart';
+import '../../shell/routing/multitabs_nav.dart';
+import '../../shell/view/mt_tab_presentation.dart';
+import '../../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Root page of a tab's stack. The shell provides the AppBar/NavigationBar, so

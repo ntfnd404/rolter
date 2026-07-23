@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'package:example/core/routing/app_route.dart';
+import 'app_route.dart';
 import 'package:rolter/rolter.dart';
 
 /// Logs every committed navigation transition. Telemetry belongs in a

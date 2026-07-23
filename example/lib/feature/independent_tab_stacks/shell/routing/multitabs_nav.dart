@@ -1,7 +1,7 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/multitabs_route.dart';
-import 'package:example/feature/independent_tab_stacks/detail/routing/mt_detail_route.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import 'mt_tab.dart';
+import 'multitabs_route.dart';
+import '../../detail/routing/mt_detail_route.dart';
+import '../../../../core/routing/app_navigator.dart';
 
 /// Multi-tab feature navigation sugar, added to the shared [AppNavigator].
 extension MultiTabsNav on AppNavigator {
@@ -16,10 +16,10 @@ extension MultiTabsNav on AppNavigator {
   });
 
   /// Pushes a detail into [tab]'s own nested stack.
-  void openMtItem(MtTab tab, int id) => mutateAt(
-    ['multitabs', tab.wire],
-    (node) => node.withChildren([...node.children, MtDetailRoute(tab, id)]),
-  );
+  void openMtItem(MtTab tab, int id) => mutateAt([
+    'multitabs',
+    tab.wire,
+  ], (node) => node.withChildren([...node.children, MtDetailRoute(tab, id)]));
 
   /// Pops the top of [tab]'s nested stack (if it has more than the root list).
   void popMtItem(MtTab tab) => mutateAt(['multitabs', tab.wire], (node) {

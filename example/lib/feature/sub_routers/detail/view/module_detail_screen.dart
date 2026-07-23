@@ -1,5 +1,5 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
-import 'package:example/feature/sub_routers/shell/view/demo_module_presentation.dart';
+import '../../shell/routing/demo_module.dart';
+import '../../shell/view/demo_module_presentation.dart';
 import 'package:flutter/material.dart';
 
 /// A module detail — owns its own `Scaffold`; `detail` is resolved by the

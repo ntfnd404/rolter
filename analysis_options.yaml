@@ -34,7 +34,7 @@ linter:
     # Public API
     public_member_api_docs: true
     provide_deprecation_message: true
-    always_use_package_imports: true
+    prefer_relative_imports: true
     lines_longer_than_80_chars: true
 
     # Style
@@ -126,4 +126,3 @@ linter:
     literal_only_boolean_expressions: true
     no_adjacent_strings_in_list: true
     unnecessary_statements: true
-    simple_directive_paths: true

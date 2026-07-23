@@ -1,5 +1,5 @@
-import 'package:example/feature/home/routing/home_nav.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import '../../home/routing/home_nav.dart';
+import '../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Shown for an unknown URL (the route is `HistoryExcluded`).

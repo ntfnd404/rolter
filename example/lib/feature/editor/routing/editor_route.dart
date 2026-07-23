@@ -1,6 +1,6 @@
-import 'package:example/feature/editor/routing/editor_route_name.dart';
-import 'package:example/feature/editor/view/editor_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'editor_route_name.dart';
+import '../view/editor_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 
 /// A screen that blocks leaving while it has unsaved changes — confirm-on-leave

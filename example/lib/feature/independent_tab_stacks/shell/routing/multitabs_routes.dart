@@ -1,7 +1,7 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab_route.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/multitabs_route.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'mt_tab.dart';
+import 'mt_tab_route.dart';
+import 'multitabs_route.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:rolter/rolter.dart';
 
 /// Multi-tab shell decoder contribution: the shell node and its per-tab

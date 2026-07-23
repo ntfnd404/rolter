@@ -1,5 +1,5 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/mt_tab_presentation.dart';
+import '../../shell/routing/mt_tab.dart';
+import '../../shell/view/mt_tab_presentation.dart';
 import 'package:flutter/material.dart';
 
 /// A detail page living on one tab's nested stack. Switch tabs while it is open

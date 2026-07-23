@@ -1,7 +1,7 @@
-import 'package:example/feature/confirm/routing/confirm_route_name.dart';
-import 'package:example/feature/confirm/view/confirm_dialog.dart';
-import 'package:example/core/routing/app_navigator.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'confirm_route_name.dart';
+import '../view/confirm_dialog.dart';
+import '../../../core/routing/app_navigator.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 

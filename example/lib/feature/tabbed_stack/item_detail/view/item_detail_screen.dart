@@ -1,4 +1,4 @@
-import 'package:example/core/di/app_scope.dart';
+import '../../../../core/di/app_scope.dart';
 import 'package:flutter/material.dart';
 
 /// A detail pushed inside the Items tab's nested navigator. Content only — the

@@ -1,4 +1,4 @@
-import 'package:example/feature/route_scope/controller/counter_controller.dart';
+import '../controller/counter_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 

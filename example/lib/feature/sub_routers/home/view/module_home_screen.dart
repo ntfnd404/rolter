@@ -1,7 +1,7 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
-import 'package:example/feature/sub_routers/shell/routing/modules_nav.dart';
-import 'package:example/feature/sub_routers/shell/view/demo_module_presentation.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import '../../shell/routing/demo_module.dart';
+import '../../shell/routing/modules_nav.dart';
+import '../../shell/view/demo_module_presentation.dart';
+import '../../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Root of a module's stack — owns its own `Scaffold`/`AppBar`.
