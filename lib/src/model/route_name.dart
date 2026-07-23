@@ -15,8 +15,7 @@ void validateRouteName(String name, {required String argumentName}) {
     throw ArgumentError.value(
       name,
       argumentName,
-      'route names form an unescaped URL path-segment body and must match '
-          '[A-Za-z0-9_-]+ (no "/", ".", "~", or spaces)',
+      'must match [A-Za-z0-9_-]+; "/", ".", "~", and spaces are invalid',
     );
   }
 }
