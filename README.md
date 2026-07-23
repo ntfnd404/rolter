@@ -396,4 +396,4 @@ operation on the server.
 
 - Source code: https://github.com/ntfnd404/rolter
 - Issue tracker: https://github.com/ntfnd404/rolter/issues
-- License: MIT
+- License: BSD-3-Clause
