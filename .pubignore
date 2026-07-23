@@ -1,0 +1,31 @@
+# Repository and editor metadata.
+/.github/
+/.idea/
+/.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Generated Dart and Flutter output.
+/.dart_tool/
+/.flutter-plugins-dependencies
+/.packages
+/build/
+/coverage/
+/doc/api/
+/pubspec.lock
+
+# Internal release and CI utilities are not part of the consumer package.
+/tool/
+
+# Local operating-system and migration artifacts.
+.DS_Store
+*.class
+*.log
+*.pyc
+*.swp
+.atom/
+.buildlog/
+.history/
+.svn/
+migrate_working_dir/

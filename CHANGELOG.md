@@ -1,4 +1,4 @@
-## 0.0.1
+## 0.1.0
 
 Initial release.
 
@@ -6,8 +6,9 @@ Initial release.
   typed, URL-serializable routes. Routes carry an explicit identity contract
   (value equality + a `pageKey` that encodes every identity-bearing param and is
   unique across the tree), with a `KeyedRouteEquality` mixin for leaves and
-  debug asserts that catch a duplicate page key, a `StrictHierarchy` parent with
-  a disallowed child, or a non-URL-safe route name.
+  production validation that rejects a duplicate page key or a non-URL-safe
+  route name. `StrictHierarchy` remains an opt-in debug diagnostic for mis-wired
+  nesting.
 - URL grammar via a swappable `RouteUrlCodec` (default `TreeUrlCodec`,
   dot-depth): lossless param round-trip (values with `&`, `%`, `/`, or
   non-ASCII are preserved) and standard `?k=v` query interop, with an optional
@@ -18,9 +19,10 @@ Initial release.
 - Built-in nested navigation via `NavigatorScope` and `NestedNavigatorHost`
   (path-addressed, with an optional `transitionDelegate` and a single
   back-button override hook).
-- Async-safe navigation through a serial `NavigationQueue` and composable route
-  guards (`RouteGuard`, `GuardedPipeline`) with redirect-loop protection
-  (the guard fold re-settles, bounded by `maxResettlements`).
+- Async-safe navigation through a public, fail-fast `NavigationQueue`; the
+  mutable queue owned by `RoutesState` remains encapsulated. Composable guards
+  (`RouteGuard`, `GuardedPipeline`) include redirect-loop protection (the guard
+  fold re-settles, bounded by `maxResettlements`).
 - Predicate stack operations over the typed route — `popUntil`, `removeWhere`,
   `pushAndResetTo` — as pure tree functions and on `NavigationService`.
 - Read-only navigation telemetry via `NavObserver` (each commit reports the

@@ -16,13 +16,30 @@ typed, URL-serializable route tree and built-in nested navigation.
 This package is in early development. The API is not yet stable and may
 change significantly between versions.
 
+Rolter requires Flutter 3.32 or later and Dart 3.8 or later. Development and
+canonical formatting use the latest stable SDK, while CI verifies the declared
+minimum and the latest stable release.
+
+## Architecture
+
+![Rolter architecture](screenshots/architecture.webp)
+
+The URL codec reconstructs typed route nodes, guards settle the requested
+tree, and `RoutesState` commits a single source of truth rendered by root and
+nested navigators.
+
+![Deep link followed by nested and root back navigation](screenshots/deep_link_nested_back.gif)
+
+The animation opens a deep link into a nested stack, then removes the nested
+detail before returning through the root stack.
+
 ## Getting started
 
 Add `rolter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  rolter: ^0.0.1
+  rolter: ^0.1.0
 ```
 
 ## Usage
@@ -77,14 +94,40 @@ renders and deep-links without it.
 See the [`example/`](example/) app for nested navigation, tabs, route guards,
 push-for-result, dialog-as-route, and per-route dependency scopes.
 
+Import only `package:rolter/rolter.dart`. Anything under
+`package:rolter/src/` is implementation detail and may change in any release.
+
+## Extensible navigation scheduling and security
+
+`NavigationQueue` is a public, fail-fast FIFO primitive for custom navigation
+architectures. It copies submitted snapshots, serializes asynchronous
+processors, and never silently drops or coalesces requests. Requests queued
+behind a failed processor are discarded, and a fresh request is accepted after
+the failure has been observed through `processingCompleted`.
+
+The queue intentionally has no built-in capacity or overflow policy. If an
+application can generate navigation faster than its processor can settle it,
+debounce or rate-limit that event source before adding snapshots.
+
+`RoutesState` deliberately does not expose its mutable internal queue. Use its
+navigation methods and the read-only `isProcessing` and `processingCompleted`
+properties so every request passes through the configured `ApplyPipeline`.
+
+A custom `SnapshotProcessor` is trusted application code and can choose not to
+run route guards. Neither it nor `RouteGuard` is a security boundary: modified
+clients can bypass client-side navigation policy. Always enforce authorization
+again on the server before returning protected data or performing a protected
+operation.
+
 ## Route identity (important)
 
 Every `RouteNode` must have value `==`/`hashCode`, and its `pageKey` must encode
 every identity-bearing param and be **unique across the whole tree**. The engine
 detects changes with `listEquals` and keys pages by `pageKey`, so a param left
 out of both is invisible (the navigation is silently a no-op) and a shared
-`pageKey` collapses two pages into one (a duplicate-key assertion). For a leaf,
-put the params in the key and mix in `KeyedRouteEquality`:
+`pageKey` would collapse two pages into one. `RoutesState` therefore rejects a
+duplicate key before commit. For a leaf, put the params in the key and mix in
+`KeyedRouteEquality`:
 
 ```dart
 final class ItemRoute with KeyedRouteEquality {
@@ -229,10 +272,27 @@ A *new* navigation drops the forward entries (browser semantics); only
 
 The parser depends on the `RouteUrlCodec` interface, not a concrete codec.
 `TreeUrlCodec` is the default dot-depth implementation. Rolter also ships
-`Base64RouteCodec` — an opaque base64url-JSON-in-path codec for redirects that
+`Base64RouteCodec` — a compact base64url-JSON-in-path codec for redirects that
 strip the fragment (OAuth / Telegram): the whole route survives as one token
 (`/eyJuIjoiaG9tZSJ9`). Or write your own, as long as `decode(encode(tree))`
 round-trips.
+
+Base64url is reversible encoding, not encryption, integrity protection, or
+authentication. Anyone can decode, modify, and re-encode the route token. Do
+not put secrets, credentials, or personal data in URLs; validate decoded route
+semantics and enforce protected data and operations on the server.
+
+### URL compatibility policy
+
+The built-in encoder always writes the current wire format. Before 1.0, a
+breaking URL grammar change increments the minor version, and the decoder keeps
+accepting the previous minor's format for at least one complete minor release
+cycle. Security-critical fixes may shorten that window and will be called out
+prominently in the changelog.
+
+Deep links often outlive package constraints. If an application replaces a
+built-in codec or changes its route names or serialized parameters, the
+application owns the corresponding migration and backward-decoding policy.
 
 ## Feature sub-routers (namespace isolation)
 
@@ -326,6 +386,13 @@ ways:
 See [`example/`](example/) for a worked feature-first layout.
 
 ## Additional information
+
+Rolter validates duplicate page keys and URL-unsafe route names in every build
+mode and rejects them before commit or encoding. `StrictHierarchy` remains an
+opt-in debug diagnostic for mis-wired nesting; other debug assertions are also
+programming diagnostics, not production input validation. Applications must
+still validate external route data and authorize every security-sensitive
+operation on the server.
 
 - Source code: https://github.com/ntfnd404/rolter
 - Issue tracker: https://github.com/ntfnd404/rolter/issues
