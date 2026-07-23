@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/widgets/scope_access.dart';
+import 'scope_access.dart';
 
 /// A per-route dependency scope.
 ///

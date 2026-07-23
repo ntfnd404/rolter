@@ -1,5 +1,5 @@
-import 'package:rolter/src/guard/nav_decision.dart';
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
+import 'nav_decision.dart';
 
 /// Outcome of a [RouteGuard]: continue with [stack], or cancel navigation.
 class GuardResult<R extends RouteNode> {

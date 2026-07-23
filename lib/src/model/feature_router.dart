@@ -1,5 +1,5 @@
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_registry.dart';
+import 'route_node.dart';
+import 'route_registry.dart';
 
 /// A self-contained, mountable feature router.
 ///

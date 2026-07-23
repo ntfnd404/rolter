@@ -13,6 +13,9 @@ import 'package:flutter/foundation.dart';
 /// URL; most apps simply read [value] once after the first frame.
 class EntryQueryStore extends ChangeNotifier
     implements ValueListenable<Map<String, String>> {
+  /// Creates an empty entry-query store.
+  EntryQueryStore();
+
   Map<String, String> _value = const <String, String>{};
 
   /// The most recent entry URL's query parameters (empty until the first

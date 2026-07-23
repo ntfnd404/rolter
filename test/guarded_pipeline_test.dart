@@ -102,6 +102,8 @@ class _OscillatingGuard with ChangeNotifier implements RouteGuard<TestRoute> {
 /// Records the length of the `history` it is handed each run.
 class _HistorySpy with ChangeNotifier implements RouteGuard<TestRoute> {
   int lastLength = -1;
+  bool outerHistoryIsReadOnly = false;
+  bool storedStackIsReadOnly = false;
 
   @override
   GuardResult<TestRoute> call(
@@ -110,6 +112,18 @@ class _HistorySpy with ChangeNotifier implements RouteGuard<TestRoute> {
     Map<String, Object?> context,
   ) {
     lastLength = history.length;
+    try {
+      history.add(const []);
+    } on UnsupportedError {
+      outerHistoryIsReadOnly = true;
+    }
+    if (history.isNotEmpty) {
+      try {
+        history.first.add(const TestRoute('injected'));
+      } on UnsupportedError {
+        storedStackIsReadOnly = true;
+      }
+    }
     return GuardResult.proceed(requested);
   }
 }
@@ -262,6 +276,40 @@ void main() {
       }
 
       expect(spy.lastLength, lessThanOrEqualTo(3));
+      expect(spy.outerHistoryIsReadOnly, isTrue);
+      expect(spy.storedStackIsReadOnly, isTrue);
+    });
+
+    test('copies the guard list and validates safety bounds', () async {
+      final guards = <RouteGuard<TestRoute>>[];
+      final pipeline = GuardedPipeline<TestRoute>(
+        guards: guards,
+        normalize: identity,
+        currentStack: () => const [],
+      );
+      guards.add(_BlockGuard());
+
+      final out = await pipeline.call([const TestRoute('blocked')]);
+
+      expect(out.map((route) => route.name), ['blocked']);
+      expect(
+        () => GuardedPipeline<TestRoute>(
+          guards: const [],
+          normalize: identity,
+          currentStack: () => const [],
+          historyLimit: -1,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => GuardedPipeline<TestRoute>(
+          guards: const [],
+          normalize: identity,
+          currentStack: () => const [],
+          maxResettlements: -1,
+        ),
+        throwsArgumentError,
+      );
     });
   });
 }

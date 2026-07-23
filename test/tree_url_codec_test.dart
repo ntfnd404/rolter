@@ -32,7 +32,9 @@ class _Node implements RouteNode {
   @override
   int get hashCode => Object.hash(
     name,
-    Object.hashAllUnordered(params.entries.map((e) => '${e.key}=${e.value}')),
+    Object.hashAllUnordered(
+      params.entries.map((e) => '${e.key}=${e.value}'),
+    ),
     Object.hashAll(children),
   );
 
@@ -173,11 +175,11 @@ void main() {
     });
   });
 
-  group('TreeUrlCodec route-name safety (debug assert)', () {
-    test('a URL-unsafe name trips the encode assert', () {
+  group('TreeUrlCodec route-name safety', () {
+    test('a URL-unsafe name is rejected in every build mode', () {
       expect(
         () => codec.encode([const _Node('bad name')]),
-        throwsA(isA<AssertionError>()),
+        throwsArgumentError,
       );
     });
 

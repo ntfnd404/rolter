@@ -85,7 +85,11 @@ void main() {
     });
 
     test('an unknown child name uses the sub-registry fallback', () {
-      final child = codec.decode(Uri.parse('/shop/.zzz')).single.children.single;
+      final child = codec
+          .decode(Uri.parse('/shop/.zzz'))
+          .single
+          .children
+          .single;
       expect(_tagOf(child), 'shop:');
       expect(child.name, 'shop-404');
     });
@@ -106,6 +110,44 @@ void main() {
     test('returns the sub-registry for a mount, null otherwise', () {
       expect(root.childRegistryOf('shop'), same(shopRegistry));
       expect(root.childRegistryOf('detail'), isNull);
+    });
+
+    test('copies decoder and child-registry maps defensively', () {
+      final decoders = <String, RouteDecoder<_Node>>{
+        'shop': (p, c) => _Node('shop', params: p, children: c, tag: 'copied:'),
+      };
+      final children = <String, RouteRegistry<_Node>>{'shop': shopRegistry};
+      final registry = RouteRegistry<_Node>(
+        decoders,
+        fallback: (uri) => const _Node('not-found'),
+        children: children,
+      );
+
+      decoders.clear();
+      children.clear();
+
+      expect(registry.decode('shop', const {}, const []).name, 'shop');
+      expect(registry.childRegistryOf('shop'), same(shopRegistry));
+    });
+
+    test('rejects unsafe registry names', () {
+      expect(
+        () => RouteRegistry<_Node>(
+          {'bad/name': (p, c) => _Node('bad/name', params: p, children: c)},
+          fallback: (uri) => const _Node('not-found'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('allows a child registry without a shell decoder', () {
+      final registry = RouteRegistry<_Node>(
+        const {},
+        fallback: (uri) => const _Node('not-found'),
+        children: {'shop': shopRegistry},
+      );
+
+      expect(registry.childRegistryOf('shop'), same(shopRegistry));
     });
   });
 

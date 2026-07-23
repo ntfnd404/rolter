@@ -71,7 +71,7 @@ void main() {
       // -> guard cancels. Before the fix the navigator dropped the page while
       // state kept it (divergence); now state re-syncs the navigator.
       await tester.tap(find.byType(BackButton));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       await tester.pumpAndSettle();
 
       expect(find.text('detail-body'), findsOneWidget, reason: 'page vetoed');
@@ -80,7 +80,7 @@ void main() {
       // With the veto off, the same gesture pops normally.
       veto = false;
       await tester.tap(find.byType(BackButton));
-      await state.queue.processingCompleted;
+      await state.processingCompleted;
       await tester.pumpAndSettle();
 
       expect(find.text('detail-body'), findsNothing);

@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_tree.dart';
-import 'package:rolter/src/navigation/navigation_service.dart';
+import '../model/route_node.dart';
+import '../model/route_tree.dart';
+import '../navigation/navigation_service.dart';
 
 /// Hosts a child [Navigator] over the children of the tree node at [path].
 ///

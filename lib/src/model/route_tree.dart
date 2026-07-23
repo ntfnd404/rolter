@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
+import 'route_node.dart';
 
 /// Pure, immutable operations over the navigation tree.
 ///
@@ -96,7 +96,7 @@ Set<LocalKey> collectPageKeys<R extends RouteNode>(List<R> roots) {
 }
 
 /// Returns the first [RouteNode.pageKey] that occurs more than once anywhere in
-/// the tree, or `null` if every key is unique. A debug aid for the Navigator's
+/// the tree, or `null` if every key is unique. Used to enforce the Navigator's
 /// unique-page-key requirement (see `RouteNode.pageKey`).
 LocalKey? firstDuplicatePageKey<R extends RouteNode>(List<R> roots) {
   final seen = <LocalKey>{};
@@ -161,7 +161,7 @@ List<R> pushAndResetTo<R extends RouteNode>(
 
 /// Returns a description of the first parent → disallowed-child relationship in
 /// the tree, or `null` if it is consistent. Only nodes implementing
-/// [StrictHierarchy] are checked. A debug aid for catching mis-wired nesting.
+/// [StrictHierarchy] are checked. Used as a development-time diagnostic.
 String? hierarchyViolation<R extends RouteNode>(List<R> roots) {
   String? violation;
 
@@ -174,8 +174,7 @@ String? hierarchyViolation<R extends RouteNode>(List<R> roots) {
         final strict = node as StrictHierarchy;
         for (final child in node.children) {
           if (!strict.allowsChild(child)) {
-            violation =
-                '"${node.name}" does not allow child "${child.name}"';
+            violation = '"${node.name}" does not allow child "${child.name}"';
 
             return;
           }

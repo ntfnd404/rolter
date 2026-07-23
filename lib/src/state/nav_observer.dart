@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
 
 /// A committed navigation change, handed to a [NavObserver] after the tree has
 /// updated.

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/state/routes_state.dart';
+import '../model/route_node.dart';
+import '../state/routes_state.dart';
 
 /// Generic, screen-agnostic [RouterDelegate]. Never subclassed per app: routes
 /// build their own pages polymorphically via [RouteNode.buildPage].

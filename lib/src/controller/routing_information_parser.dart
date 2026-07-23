@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/controller/entry_query_store.dart';
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_url_codec.dart';
+import '../model/route_node.dart';
+import '../model/route_url_codec.dart';
+import 'entry_query_store.dart';
 
 /// Bridges the platform's [RouteInformation] (URL) and the typed tree config
 /// (`List<R>`), delegating the grammar to a [RouteUrlCodec].

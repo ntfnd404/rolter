@@ -1,4 +1,4 @@
-import 'package:rolter/src/model/route_node.dart';
+import 'route_node.dart';
 
 /// Value `==`/`hashCode` for a [RouteNode] derived entirely from its
 /// `(runtimeType, pageKey)`.

@@ -1,22 +1,28 @@
 import 'dart:convert';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_registry.dart';
-import 'package:rolter/src/model/route_url_codec.dart';
+import 'route_node.dart';
+import 'route_registry.dart';
+import 'route_url_codec.dart';
 
-/// An opaque [RouteUrlCodec] that serialises the whole tree to base64url JSON
+/// A compact [RouteUrlCodec] that serialises the whole tree to base64url JSON
 /// in a single path segment (e.g. `/eyJuIjoiaG9tZSJ9`).
 ///
 /// Use it when the dot-depth URL would be mangled by an intermediary —
 /// typically OAuth / Telegram redirects that strip the fragment and rewrite the
 /// path: the
-/// entire navigation state survives as one opaque token. The trade-off is that
+/// entire navigation state survives as one compact token. The trade-off is that
 /// the URL is no longer human-readable or hand-editable, so keep the default
 /// [TreeUrlCodec] unless you specifically need this.
 ///
 /// Decoding via the [RouteRegistry] is identical to [TreeUrlCodec] (same typed
 /// nodes, same sub-registry mounts); only the wire format differs. A malformed
 /// token decodes to an empty stack (the app's `normalize` restores a root).
+///
+/// Base64url is reversible encoding, not encryption, integrity protection, or
+/// authentication. Anyone can read and forge a token. Never place secrets,
+/// credentials, or personal data in it, and validate decoded route semantics
+/// before use. Protected data and operations still require server-side
+/// authorization.
 class Base64RouteCodec<R extends RouteNode> implements RouteUrlCodec<R> {
   /// Creates a codec that decodes nodes via [_registry].
   const Base64RouteCodec(this._registry);
@@ -73,8 +79,12 @@ class Base64RouteCodec<R extends RouteNode> implements RouteUrlCodec<R> {
       if (name is! String || name.isEmpty) {
         continue;
       }
+      final rawParams = raw['p'];
+      if (rawParams != null && rawParams is! Map) {
+        continue;
+      }
       final params = <String, String>{
-        for (final entry in (raw['p'] as Map? ?? const {}).entries)
+        for (final entry in (rawParams as Map? ?? const {}).entries)
           '${entry.key}': '${entry.value}',
       };
       final childRegistry = registry.childRegistryOf(name) ?? registry;

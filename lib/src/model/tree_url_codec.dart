@@ -1,6 +1,7 @@
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_registry.dart';
-import 'package:rolter/src/model/route_url_codec.dart';
+import 'route_name.dart';
+import 'route_node.dart';
+import 'route_registry.dart';
+import 'route_url_codec.dart';
 
 /// Default [RouteUrlCodec]: encodes the navigation tree to a [Uri] and back,
 /// generically, via the [RouteRegistry].
@@ -15,21 +16,13 @@ class TreeUrlCodec<R extends RouteNode> implements RouteUrlCodec<R> {
   const TreeUrlCodec(this._registry);
   final RouteRegistry<R> _registry;
 
-  // Route names are written to the URL verbatim (not percent-encoded) and act
-  // as the depth/param-delimited segment body, so they must be URL-path-safe.
-  static final RegExp _safeName = RegExp(r'^[A-Za-z0-9_-]+$');
-
   /// Projects the whole [roots] tree to a single [Uri].
   @override
   Uri encode(List<R> roots) {
     final segments = <String>[];
 
     void encodeNode(RouteNode node, int depth) {
-      assert(
-        _safeName.hasMatch(node.name),
-        'rolter: route name "${node.name}" is not URL-safe. Names are written '
-        'verbatim and must match [A-Za-z0-9_-]+ (no "/", ".", "~", or spaces).',
-      );
+      validateRouteName(node.name, argumentName: 'RouteNode.name');
       final prefix = '.' * depth;
       final params = node.toParams();
       if (params.isEmpty) {
@@ -92,10 +85,14 @@ class TreeUrlCodec<R extends RouteNode> implements RouteUrlCodec<R> {
       return roots;
     }
     final top = roots.last;
-    final merged = _registry.decode(top.name, {
-      ...query,
-      ...top.toParams(),
-    }, top.children.cast<R>());
+    final merged = _registry.decode(
+      top.name,
+      {
+        ...query,
+        ...top.toParams(),
+      },
+      top.children.cast<R>(),
+    );
 
     return <R>[...roots.sublist(0, roots.length - 1), merged];
   }

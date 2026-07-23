@@ -1,4 +1,4 @@
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
 
 /// Remembers a navigation target to restore later — the "return after
 /// login/unlock" store.
@@ -10,6 +10,9 @@ import 'package:rolter/src/model/route_node.dart';
 /// it once they are allowed through. That is exactly this store — share one
 /// with a guard instead of hand-rolling an `intended` field.
 class PendingLocation<R extends RouteNode> {
+  /// Creates an empty pending-location store.
+  PendingLocation();
+
   List<R>? _stack;
 
   /// Whether a target is currently remembered.
