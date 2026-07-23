@@ -1,4 +1,5 @@
-import 'package:rolter/src/model/route_node.dart';
+import 'route_name.dart';
+import 'route_node.dart';
 
 /// Builds a typed [R] node from its decoded URL [params] and already-decoded
 /// [children]. One decoder is registered per route name.
@@ -18,14 +19,30 @@ typedef RouteDecoder<R extends RouteNode> =
 /// each have a `detail` route without colliding. (Page keys remain global, so
 /// keep those unique across the whole tree regardless.)
 class RouteRegistry<R extends RouteNode> {
-  /// Creates a registry from [_decoders], using [fallback] for unknown names.
-  /// `children` mounts a sub-registry under a name to decode its subtree.
-  const RouteRegistry(
-    this._decoders, {
+  /// Creates an immutable registry from [decoders].
+  ///
+  /// Decoder and child-registry maps are copied, so later mutations of the
+  /// supplied maps do not reconfigure this registry. Every registered name and
+  /// child-registry key must match `[A-Za-z0-9_-]+`. A conventional mount has
+  /// both a shell decoder and a child registry, but fallback-based
+  /// configurations are not prohibited. [fallback] handles unknown names.
+  RouteRegistry(
+    Map<String, RouteDecoder<R>> decoders, {
     required this.fallback,
     Map<String, RouteRegistry<R>> children = const {},
-    // A named param cannot bind a private field, so assign in the initializer.
-  }) : _children = children; // ignore: prefer_initializing_formals
+  }) : _decoders = Map<String, RouteDecoder<R>>.unmodifiable(
+         Map<String, RouteDecoder<R>>.of(decoders),
+       ),
+       _children = Map<String, RouteRegistry<R>>.unmodifiable(
+         Map<String, RouteRegistry<R>>.of(children),
+       ) {
+    for (final name in _decoders.keys) {
+      validateRouteName(name, argumentName: 'decoders');
+    }
+    for (final name in _children.keys) {
+      validateRouteName(name, argumentName: 'children');
+    }
+  }
 
   /// Builds a fallback node (e.g. not-found) for an unknown name.
   final R Function(Uri attempted) fallback;

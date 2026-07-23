@@ -1,5 +1,5 @@
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_tab.dart';
-import 'package:example/feature/tabbed_stack/settings/view/settings_screen.dart';
+import '../routing/tabs_tab.dart';
+import '../../settings/view/settings_screen.dart';
 import 'package:flutter/material.dart';
 
 /// Tabbed shell with **one shared AppBar** for both tabs and the Items tab's

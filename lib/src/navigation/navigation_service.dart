@@ -1,4 +1,4 @@
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
 
 /// The navigation surface that app code (screens, scopes) depends on.
 ///

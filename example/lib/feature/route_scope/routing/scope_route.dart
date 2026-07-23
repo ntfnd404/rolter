@@ -1,7 +1,7 @@
-import 'package:example/feature/route_scope/controller/counter_controller.dart';
-import 'package:example/feature/route_scope/view/counter_scope_screen.dart';
-import 'package:example/feature/route_scope/routing/scope_route_name.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../controller/counter_controller.dart';
+import '../view/counter_scope_screen.dart';
+import 'scope_route_name.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 

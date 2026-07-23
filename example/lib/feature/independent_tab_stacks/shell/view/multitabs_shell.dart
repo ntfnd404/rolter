@@ -1,8 +1,8 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/multitabs_nav.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/mt_tab_presentation.dart';
-import 'package:example/core/routing/app_navigator.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../routing/mt_tab.dart';
+import '../routing/multitabs_nav.dart';
+import 'mt_tab_presentation.dart';
+import '../../../../core/routing/app_navigator.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +40,9 @@ class _Node implements RouteNode {
   @override
   int get hashCode => Object.hash(
     name,
-    Object.hashAllUnordered(params.entries.map((e) => '${e.key}=${e.value}')),
+    Object.hashAllUnordered(
+      params.entries.map((e) => '${e.key}=${e.value}'),
+    ),
     Object.hashAll(children),
   );
 
@@ -74,7 +78,12 @@ void main() {
 
   test('round-trips a mounted subtree, resolved via sub-registry', () {
     const tree = [
-      _Node('shop', children: [_Node('detail', params: {'id': '1'})]),
+      _Node(
+        'shop',
+        children: [
+          _Node('detail', params: {'id': '1'}),
+        ],
+      ),
     ];
     final decoded = codec.decode(codec.encode(tree));
 
@@ -82,7 +91,7 @@ void main() {
     expect((decoded.single.children.single as _Node).tag, 'shop:');
   });
 
-  test('encodes to a single opaque path segment (no readable names)', () {
+  test('encodes to a single compact path segment (no readable names)', () {
     final uri = codec.encode([const _Node('home')]);
 
     expect(uri.pathSegments.length, 1);
@@ -92,5 +101,20 @@ void main() {
   test('a malformed or empty token decodes to an empty stack', () {
     expect(codec.decode(Uri.parse('/!!!!')), isEmpty);
     expect(codec.decode(Uri.parse('/')), isEmpty);
+  });
+
+  test('skips a node whose params are not a JSON object', () {
+    final payload = jsonEncode([
+      {'n': 'home', 'p': <Object?>[]},
+      {
+        'n': 'home',
+        'p': {'safe': 'value'},
+      },
+    ]);
+    final token = base64Url.encode(utf8.encode(payload));
+
+    expect(codec.decode(Uri(path: '/$token')), [
+      const _Node('home', params: {'safe': 'value'}),
+    ]);
   });
 }

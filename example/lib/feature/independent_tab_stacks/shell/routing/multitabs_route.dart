@@ -1,9 +1,9 @@
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab.dart';
-import 'package:example/feature/independent_tab_stacks/shell/routing/mt_tab_route.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/mt_tab_presentation.dart';
-import 'package:example/feature/independent_tab_stacks/shell/view/multitabs_shell.dart';
-import 'package:example/feature/independent_tab_stacks/detail/routing/mt_detail_route.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'mt_tab.dart';
+import 'mt_tab_route.dart';
+import '../view/mt_tab_presentation.dart';
+import '../view/multitabs_shell.dart';
+import '../../detail/routing/mt_detail_route.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
@@ -14,8 +14,8 @@ import 'package:rolter/rolter.dart';
 /// its own child node ([MtTabRoute]) whose `children` are *that tab's* nested
 /// back stack. The shell keeps all tabs alive in an `IndexedStack`. Because
 /// every tab's stack is part of the tree, the whole thing round-trips through
-/// one URL. Implements [StrictHierarchy] so a mis-wired child trips a debug
-/// assert.
+/// one URL. Implements [StrictHierarchy] so a mis-wired child is rejected
+/// before commit.
 ///
 /// Lives in the multitabs group's `common/`: it composes the per-tab `list`
 /// and `detail` sub-features into one tabbed section.

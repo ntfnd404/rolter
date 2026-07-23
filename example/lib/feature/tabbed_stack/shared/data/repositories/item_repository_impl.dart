@@ -1,6 +1,6 @@
-import 'package:example/feature/tabbed_stack/shared/data/data_sources/item_local_data_source.dart';
-import 'package:example/feature/tabbed_stack/shared/domain/entities/item.dart';
-import 'package:example/feature/tabbed_stack/shared/domain/repositories/item_repository.dart';
+import '../data_sources/item_local_data_source.dart';
+import '../../domain/entities/item.dart';
+import '../../domain/repositories/item_repository.dart';
 
 /// [ItemRepository] over an [ItemLocalDataSource], adding id-lookup on top of
 /// the raw source. The source is **injected** by the composition root.

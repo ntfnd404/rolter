@@ -1,6 +1,6 @@
-import 'package:example/feature/detail/routing/detail_route.dart';
-import 'package:example/feature/detail/routing/detail_route_name.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'detail_route.dart';
+import 'detail_route_name.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:rolter/rolter.dart';
 
 /// Detail feature decoder contribution to the app registry.

@@ -1,6 +1,6 @@
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/navigation/navigation_service.dart';
-import 'package:rolter/src/state/routes_state.dart';
+import '../model/route_node.dart';
+import '../state/routes_state.dart';
+import 'navigation_service.dart';
 
 /// Default [NavigationService] over a [RoutesState]. App-specific typed sugar
 /// (e.g. `AppNavigator.toHome`) extends this.

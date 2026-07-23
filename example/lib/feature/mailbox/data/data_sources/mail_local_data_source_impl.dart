@@ -1,5 +1,5 @@
-import 'package:example/feature/mailbox/data/data_sources/mail_local_data_source.dart';
-import 'package:example/feature/mailbox/domain/entities/mail.dart';
+import 'mail_local_data_source.dart';
+import '../../domain/entities/mail.dart';
 
 /// In-memory [MailLocalDataSource] holding a fixed demo data set.
 final class MailLocalDataSourceImpl implements MailLocalDataSource {

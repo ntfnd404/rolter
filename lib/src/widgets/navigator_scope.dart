@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:rolter/src/widgets/scope_access.dart';
+import 'scope_access.dart';
 
 /// Inherited facade exposing the app's navigator to the widget tree.
 ///

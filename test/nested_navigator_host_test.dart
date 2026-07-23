@@ -103,7 +103,7 @@ void main() {
       const ['shell'],
       (node) => node.withChildren([...node.children, const _Leaf('detail')]),
     );
-    await state.queue.processingCompleted;
+    await state.processingCompleted;
     await tester.pumpAndSettle();
 
     expect(find.text('detail-body'), findsOneWidget);
@@ -111,7 +111,7 @@ void main() {
     // The inner AppBar back button pops the nested navigator, which must mutate
     // the hosted subtree (not the root stack) via mutateAt + removeNodeByKey.
     await tester.tap(find.byType(BackButton));
-    await state.queue.processingCompleted;
+    await state.processingCompleted;
     await tester.pumpAndSettle();
 
     expect(find.text('detail-body'), findsNothing);

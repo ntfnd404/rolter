@@ -1,6 +1,6 @@
-import 'package:example/feature/animated/routing/animated_route_name.dart';
-import 'package:example/feature/animated/view/animated_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'animated_route_name.dart';
+import '../view/animated_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 

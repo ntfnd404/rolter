@@ -1,4 +1,4 @@
-import 'package:example/core/routing/app_navigator.dart';
+import '../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Full-screen picker pushed for a result. Tapping a color returns it with

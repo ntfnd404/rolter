@@ -1,17 +1,17 @@
-import 'package:example/core/di/app_dependencies.dart';
-import 'package:example/core/di/app_scope.dart';
-import 'package:example/feature/home/routing/home_route.dart';
-import 'package:example/feature/tabbed_stack/shared/data/data_sources/item_local_data_source_impl.dart';
-import 'package:example/feature/tabbed_stack/shared/data/repositories/item_repository_impl.dart';
-import 'package:example/feature/mailbox/data/data_sources/mail_local_data_source_impl.dart';
-import 'package:example/feature/mailbox/data/repositories/mail_repository_impl.dart';
-import 'package:example/feature/session/application/session_lock_service.dart';
-import 'package:example/feature/session/bloc/lock_bloc.dart';
-import 'package:example/feature/session/routing/lock_guard.dart';
-import 'package:example/core/routing/app_navigator.dart';
-import 'package:example/core/routing/app_registry.dart';
-import 'package:example/core/routing/app_route.dart';
-import 'package:example/core/routing/nav_log_observer.dart';
+import 'core/di/app_dependencies.dart';
+import 'core/di/app_scope.dart';
+import 'feature/home/routing/home_route.dart';
+import 'feature/tabbed_stack/shared/data/data_sources/item_local_data_source_impl.dart';
+import 'feature/tabbed_stack/shared/data/repositories/item_repository_impl.dart';
+import 'feature/mailbox/data/data_sources/mail_local_data_source_impl.dart';
+import 'feature/mailbox/data/repositories/mail_repository_impl.dart';
+import 'feature/session/application/session_lock_service.dart';
+import 'feature/session/bloc/lock_bloc.dart';
+import 'feature/session/routing/lock_guard.dart';
+import 'core/routing/app_navigator.dart';
+import 'core/routing/app_registry.dart';
+import 'core/routing/app_route.dart';
+import 'core/routing/nav_log_observer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rolter/rolter.dart';
@@ -43,7 +43,7 @@ class _ExampleAppState extends State<ExampleApp> {
   late final AppNavigator _navigator;
   late final RoutingDelegate<AppRoute> _delegate;
   late final RoutingInformationParser<AppRoute> _parser;
-  // Captures the entry URL's query (e.g. utm_*); see the debugPrint below.
+  // Captures the entry URL's query (e.g. utm_*); values are never logged.
   final EntryQueryStore _entryQuery = EntryQueryStore();
 
   @override
@@ -69,7 +69,9 @@ class _ExampleAppState extends State<ExampleApp> {
       entryQuery: _entryQuery,
     );
     _entryQuery.addListener(
-      () => debugPrint('entry query: ${_entryQuery.value}'),
+      () => debugPrint(
+        'entry query updated (${_entryQuery.value.length} parameters)',
+      ),
     );
   }
 

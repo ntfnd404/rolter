@@ -1,4 +1,4 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
+import '../routing/demo_module.dart';
 
 /// Display strings for [DemoModule] — a presentation concern, kept out of the
 /// identity enum. Hardcoded for now; swap each `case` for a localized lookup

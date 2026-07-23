@@ -1,7 +1,7 @@
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_route.dart';
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_route_name.dart';
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_tab.dart';
-import 'package:example/core/routing/app_navigator.dart';
+import 'tabs_route.dart';
+import 'tabs_route_name.dart';
+import 'tabs_tab.dart';
+import '../../../../core/routing/app_navigator.dart';
 
 /// Tabs-shell navigation sugar, added to the shared [AppNavigator]. Owns the
 /// shell-level moves (enter the section, switch tab, pop the nested detail);

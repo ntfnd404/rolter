@@ -1,5 +1,5 @@
-import 'package:example/feature/not_found/view/not_found_screen.dart';
-import 'package:example/core/routing/app_route.dart';
+import '../view/not_found_screen.dart';
+import '../../../core/routing/app_route.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 

@@ -1,6 +1,6 @@
-import 'package:example/feature/mailbox/data/data_sources/mail_local_data_source.dart';
-import 'package:example/feature/mailbox/domain/entities/mail.dart';
-import 'package:example/feature/mailbox/domain/repositories/mail_repository.dart';
+import '../data_sources/mail_local_data_source.dart';
+import '../../domain/entities/mail.dart';
+import '../../domain/repositories/mail_repository.dart';
 
 /// [MailRepository] over a [MailLocalDataSource], adding id-lookup on top of the
 /// raw source. The source is **injected** by the composition root.

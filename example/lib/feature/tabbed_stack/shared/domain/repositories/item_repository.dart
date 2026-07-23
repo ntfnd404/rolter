@@ -1,4 +1,4 @@
-import 'package:example/feature/tabbed_stack/shared/domain/entities/item.dart';
+import '../entities/item.dart';
 
 /// Reads items. The contract lives in `domain/`; the UI depends on this.
 abstract interface class ItemRepository {

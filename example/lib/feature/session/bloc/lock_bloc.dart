@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:example/feature/session/application/session_lock_service.dart';
-import 'package:example/feature/session/bloc/lock_event.dart';
-import 'package:example/feature/session/bloc/lock_state.dart';
+import '../application/session_lock_service.dart';
+import 'lock_event.dart';
+import 'lock_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Session lock as a full [Bloc] (events → state) — the bloc-based counterpart

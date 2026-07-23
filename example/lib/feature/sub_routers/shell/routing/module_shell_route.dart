@@ -1,7 +1,7 @@
-import 'package:example/feature/sub_routers/shell/routing/demo_module.dart';
-import 'package:example/feature/sub_routers/shell/view/module_shell.dart';
-import 'package:example/feature/sub_routers/home/routing/module_home_route.dart';
-import 'package:example/core/routing/app_route.dart';
+import 'demo_module.dart';
+import '../view/module_shell.dart';
+import '../../home/routing/module_home_route.dart';
+import '../../../../core/routing/app_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';

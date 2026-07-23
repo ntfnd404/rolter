@@ -1,4 +1,4 @@
-import 'package:example/core/routing/app_navigator.dart';
+import '../../../core/routing/app_navigator.dart';
 import 'package:flutter/material.dart';
 
 /// Confirm-on-leave demo.

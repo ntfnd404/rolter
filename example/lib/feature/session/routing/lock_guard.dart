@@ -1,8 +1,8 @@
-import 'package:example/core/routing/app_route.dart';
-import 'package:example/feature/home/routing/home_route.dart';
-import 'package:example/feature/session/application/session_lock.dart';
-import 'package:example/feature/session/routing/lock_route.dart';
-import 'package:example/feature/tabbed_stack/shell/routing/tabs_route.dart';
+import '../../../core/routing/app_route.dart';
+import '../../home/routing/home_route.dart';
+import '../application/session_lock.dart';
+import 'lock_route.dart';
+import '../../tabbed_stack/shell/routing/tabs_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:rolter/rolter.dart';
 

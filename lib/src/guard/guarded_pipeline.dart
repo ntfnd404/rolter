@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/guard/route_guard.dart';
-import 'package:rolter/src/model/route_node.dart';
+import '../model/route_node.dart';
+import 'route_guard.dart';
 
 /// Builds an apply-pipeline from an ordered list of [RouteGuard]s.
 ///
@@ -22,12 +22,23 @@ class GuardedPipeline<R extends RouteNode> {
   /// Creates a pipeline that folds [normalize] and [guards] over each
   /// requested stack.
   GuardedPipeline({
-    required this.guards,
+    required List<RouteGuard<R>> guards,
     required this.normalize,
     required this.currentStack,
     this.historyLimit = 16,
     this.maxResettlements = 8,
-  });
+  }) : guards = List<RouteGuard<R>>.unmodifiable(guards) {
+    if (historyLimit < 0) {
+      throw ArgumentError.value(historyLimit, 'historyLimit', 'must be >= 0');
+    }
+    if (maxResettlements < 0) {
+      throw ArgumentError.value(
+        maxResettlements,
+        'maxResettlements',
+        'must be >= 0',
+      );
+    }
+  }
 
   /// Ordered list of guards applied to every requested stack.
   final List<RouteGuard<R>> guards;
@@ -65,11 +76,14 @@ class GuardedPipeline<R extends RouteNode> {
   Future<List<R>> call(List<R> requested) async {
     final context = <String, Object?>{};
     var next = normalize(requested);
+    final history = List<List<R>>.unmodifiable(
+      _history.map(List<R>.unmodifiable),
+    );
 
     for (var attempt = 0; attempt <= maxResettlements; attempt++) {
       final before = next;
       for (final guard in guards) {
-        final result = await guard(_history, next, context);
+        final result = await guard(history, next, context);
         if (result.decision == NavDecision.cancel) {
           return currentStack();
         }
@@ -97,7 +111,7 @@ class GuardedPipeline<R extends RouteNode> {
   }
 
   void _remember(List<R> stack) {
-    _history.add(stack);
+    _history.add(List<R>.unmodifiable(stack));
     if (_history.length > historyLimit) {
       _history.removeAt(0);
     }

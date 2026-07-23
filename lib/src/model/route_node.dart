@@ -19,7 +19,7 @@ import 'package:flutter/widgets.dart';
 /// * Page identity — the root and nested navigators key their pages by
 ///   [pageKey], which must be **unique across the whole tree** (the same
 ///   uniqueness the Navigator requires). Two nodes sharing a `pageKey` collapse
-///   to one page (and trip a duplicate-key assertion).
+///   to one page, so `RoutesState` rejects that tree before committing it.
 ///
 /// For a **leaf**, the simplest correct implementation derives both from the
 /// key: put every param in [pageKey] (e.g. `ValueKey('item:$id')`) and mix in
@@ -67,9 +67,9 @@ abstract interface class RouteNode {
 abstract interface class HistoryExcluded {}
 
 /// Opt-in marker for a shell/parent node that restricts which child routes it
-/// accepts. A debug assert in `RoutesState` (via `hierarchyViolation`) flags a
-/// committed tree where such a node has a child it does not allow — a dev-time
-/// guard against mis-wired nesting. Nodes that do not implement this are
+/// accepts. A debug assertion in `RoutesState` flags a tree where such a node
+/// has a child it does not allow. This is development-time diagnostics, not a
+/// production authorization policy. Nodes that do not implement this are
 /// unrestricted.
 abstract interface class StrictHierarchy {
   /// Whether [child] is an allowed direct child of this node.

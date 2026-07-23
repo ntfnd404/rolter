@@ -2,17 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:rolter/src/model/route_node.dart';
-import 'package:rolter/src/model/route_tree.dart' as tree;
-import 'package:rolter/src/state/nav_observer.dart';
-import 'package:rolter/src/state/navigation_queue.dart';
-import 'package:rolter/src/state/pending_results.dart';
+import '../model/route_node.dart';
+import '../model/route_tree.dart' as tree;
+import 'nav_observer.dart';
+import 'navigation_queue.dart';
+import 'pending_results.dart';
 
 /// Transforms a requested stack into the committed stack — typically normalises
 /// it and folds it through guards. May be sync or async; the queue awaits it
 /// either way.
 typedef ApplyPipeline<R extends RouteNode> =
-    FutureOr<List<R>> Function(List<R> requested);
+    FutureOr<List<R>> Function(
+      List<R> requested,
+    );
 
 /// Single source of truth for the navigation tree.
 ///
@@ -27,7 +29,8 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
     this._pipeline, {
     List<NavObserver<R>> observers = const [],
   }) : _root = List<R>.of(initial) {
-    _observers = observers;
+    _validateTree(_root);
+    _observers = List<NavObserver<R>>.unmodifiable(observers);
     _queue = NavigationQueue<R>(_commit);
   }
   final ApplyPipeline<R> _pipeline;
@@ -36,6 +39,7 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   late final NavigationQueue<R> _queue;
   List<R> _root;
   List<R>? _pending;
+  int _pendingRequestCount = 0;
 
   /// Committed root stack (read-only view).
   List<R> get root => List<R>.unmodifiable(_root);
@@ -46,8 +50,14 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Whether the root stack can pop.
   bool get canPop => _root.length > 1;
 
-  /// Exposes the queue so callers can await idle (e.g. tests).
-  NavigationQueue<R> get queue => _queue;
+  /// Whether this state is currently applying queued navigation requests.
+  bool get isProcessing => _queue.isProcessing;
+
+  /// Completes when all navigation requests queued so far have been processed.
+  ///
+  /// This lets integrations wait for asynchronous guards to settle without
+  /// exposing the internal navigation queue.
+  Future<void> get processingCompleted => _queue.processingCompleted;
 
   // Latest enqueued target (or committed root) so rapid relative ops compose.
   List<R> get _base => _pending ?? _root;
@@ -134,49 +144,52 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   }
 
   void _enqueue(List<R> target) {
-    _pending = target;
-    _queue.add(target);
+    final snapshot = List<R>.unmodifiable(target);
+    _pending = snapshot;
+    _pendingRequestCount++;
+    _queue.add(snapshot);
   }
 
   Future<void> _commit(List<R> requested) async {
-    final next = await _pipeline(requested);
-    if (identical(_pending, requested)) {
+    try {
+      final next = List<R>.of(await _pipeline(requested));
+      _validateTree(next);
+      assert(_pendingRequestCount > 0);
+      _pendingRequestCount--;
+      if (_pendingRequestCount == 0) {
+        _pending = null;
+      }
+      if (!listEquals(_root, next)) {
+        final previous = _root;
+        _root = next;
+        // Collect the new page keys once, shared by result-reconcile and the
+        // observer diff (N is tiny, but avoid two identical walks).
+        final nextKeys = (_results.isEmpty && _observers.isEmpty)
+            ? const <LocalKey>{}
+            : tree.collectPageKeys<R>(next);
+        if (!_results.isEmpty) {
+          _results.reconcileWith(nextKeys);
+        }
+        notifyListeners();
+        if (_observers.isNotEmpty) {
+          _notifyObservers(previous, nextKeys);
+        }
+      } else if (!listEquals(_root, requested)) {
+        // The committed stack is unchanged, but the request asked to change it
+        // and the pipeline reverted that (e.g. a guard cancelled a system-back
+        // removal the framework had already applied via onDidRemovePage).
+        // Notify so the delegate rebuilds its pages from `_root` and re-syncs
+        // the Navigator, which would otherwise diverge from the source-of-truth
+        // tree.
+        notifyListeners();
+      }
+    } catch (_) {
+      // NavigationQueue discards snapshots behind any failed commit. Reset the
+      // speculative base for failures in the pipeline or later commit work, so
+      // recovery always starts from the actual committed state.
       _pending = null;
-    }
-    assert(
-      tree.firstDuplicatePageKey<R>(next) == null,
-      'rolter: the committed stack has a duplicate pageKey '
-      '(${tree.firstDuplicatePageKey<R>(next)}). Every RouteNode.pageKey must '
-      'be unique across the whole tree — encode identity-bearing params into '
-      'pageKey (see RouteNode.pageKey).',
-    );
-    assert(
-      tree.hierarchyViolation<R>(next) == null,
-      'rolter: strict-hierarchy violation in the committed stack — '
-      '${tree.hierarchyViolation<R>(next)} (see StrictHierarchy).',
-    );
-    if (!listEquals(_root, next)) {
-      final previous = _root;
-      _root = next;
-      // Collect the new page keys once, shared by result-reconcile and the
-      // observer diff (N is tiny, but avoid two identical walks).
-      final nextKeys = (_results.isEmpty && _observers.isEmpty)
-          ? const <LocalKey>{}
-          : tree.collectPageKeys<R>(next);
-      if (!_results.isEmpty) {
-        _results.reconcileWith(nextKeys);
-      }
-      notifyListeners();
-      if (_observers.isNotEmpty) {
-        _notifyObservers(previous, nextKeys);
-      }
-    } else if (!listEquals(_root, requested)) {
-      // The committed stack is unchanged, but the request asked to change it
-      // and the pipeline reverted that (e.g. a guard cancelled a system-back
-      // removal the framework had already applied via onDidRemovePage). Notify
-      // so the delegate rebuilds its pages from `_root` and re-syncs the
-      // Navigator, which would otherwise diverge from the source-of-truth tree.
-      notifyListeners();
+      _pendingRequestCount = 0;
+      rethrow;
     }
   }
 
@@ -185,11 +198,47 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
     final transition = NavTransition<R>(
       previous: List<R>.unmodifiable(previous),
       next: List<R>.unmodifiable(_root),
-      entered: nextKeys.difference(before),
-      left: before.difference(nextKeys),
+      entered: Set<LocalKey>.unmodifiable(nextKeys.difference(before)),
+      left: Set<LocalKey>.unmodifiable(before.difference(nextKeys)),
     );
     for (final observer in _observers) {
-      observer.onTransition(transition);
+      try {
+        observer.onTransition(transition);
+      } catch (error, stackTrace) {
+        // Telemetry is deliberately isolated from the navigation transaction:
+        // one faulty observer must not abort the queue or suppress later
+        // observers after the route state has already committed.
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'rolter',
+            context: ErrorDescription('while notifying a NavObserver'),
+          ),
+        );
+      }
     }
+  }
+
+  void _validateTree(List<R> roots) {
+    final duplicatePageKey = tree.firstDuplicatePageKey<R>(roots);
+    if (duplicatePageKey != null) {
+      throw StateError(
+        'rolter: the committed stack has a duplicate pageKey '
+        '($duplicatePageKey). Every RouteNode.pageKey must be unique across '
+        'the whole tree — encode identity-bearing params into pageKey '
+        '(see RouteNode.pageKey).',
+      );
+    }
+    assert(() {
+      final hierarchyViolation = tree.hierarchyViolation<R>(roots);
+      assert(
+        hierarchyViolation == null,
+        'rolter: strict-hierarchy violation in the committed stack — '
+        '$hierarchyViolation (see StrictHierarchy).',
+      );
+
+      return true;
+    }());
   }
 }

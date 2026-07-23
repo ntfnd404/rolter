@@ -99,60 +99,90 @@ void main() {
     });
   });
 
-  group('firstDuplicatePageKey', () {
-    test('null when all keys are unique', () {
+  group('RoutesState page-key contract', () {
+    RoutesState<RouteNode> state() => RoutesState<RouteNode>(
+      const [TestRoute('initial')],
+      (requested) => requested,
+    );
+
+    test('rejects an invalid initial tree synchronously', () {
       expect(
-        firstDuplicatePageKey([
-          const TestRoute('a'),
-          const TestRoute('b', children: [TestRoute('c')]),
-        ]),
-        isNull,
+        () => RoutesState<RouteNode>(
+          const [
+            TestRoute('a'),
+            TestRoute('b', children: [TestRoute('a')]),
+          ],
+          (requested) => requested,
+        ),
+        throwsStateError,
       );
     });
 
-    test('detects a duplicate in the root stack', () {
-      expect(
-        firstDuplicatePageKey([const TestRoute('a'), const TestRoute('a')]),
-        const ValueKey('a'),
+    test('rejects a duplicate key without changing committed state', () async {
+      final routes = state();
+      addTearDown(routes.dispose);
+      routes.setRoot([
+        const TestRoute('a'),
+        const TestRoute('b', children: [TestRoute('a')]),
+      ]);
+      await expectLater(
+        routes.processingCompleted,
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('duplicate pageKey'),
+          ),
+        ),
       );
-    });
+      expect(routes.root, const [TestRoute('initial')]);
 
-    test('detects a duplicate that spans nesting levels', () {
-      expect(
-        firstDuplicatePageKey([
-          const TestRoute('a'),
-          const TestRoute('b', children: [TestRoute('a')]),
-        ]),
-        const ValueKey('a'),
-      );
+      routes.setRoot(const [TestRoute('recovered')]);
+      await routes.processingCompleted;
+      expect(routes.root, const [TestRoute('recovered')]);
     });
   });
 
-  group('hierarchyViolation (StrictHierarchy)', () {
-    test('null when every child is allowed', () {
-      expect(
-        hierarchyViolation([
-          const _StrictShell([TestRoute('ok')]),
-        ]),
-        isNull,
+  group('StrictHierarchy debug diagnostics', () {
+    test('accepts an allowed direct child', () async {
+      final routes = RoutesState<RouteNode>(
+        const [TestRoute('initial')],
+        (requested) => requested,
       );
+      addTearDown(routes.dispose);
+
+      routes.setRoot([
+        const _StrictShell([TestRoute('ok')]),
+      ]);
+      await routes.processingCompleted;
+
+      expect(routes.root, [
+        const _StrictShell([TestRoute('ok')]),
+      ]);
     });
 
-    test('flags a disallowed child', () {
-      final violation = hierarchyViolation([
+    test('reports a disallowed direct child with a debug assertion', () async {
+      final routes = RoutesState<RouteNode>(
+        const [TestRoute('initial')],
+        (requested) => requested,
+      );
+      addTearDown(routes.dispose);
+
+      routes.setRoot([
         const _StrictShell([TestRoute('bad')]),
       ]);
-      expect(violation, contains('does not allow'));
-      expect(violation, contains('bad'));
-    });
-
-    test('ignores nodes that are not StrictHierarchy', () {
-      expect(
-        hierarchyViolation([
-          const TestRoute('x', children: [TestRoute('y')]),
-        ]),
-        isNull,
+      await expectLater(
+        routes.processingCompleted,
+        throwsA(
+          isA<AssertionError>().having(
+            (error) => '$error',
+            'message',
+            contains('does not allow child "bad"'),
+          ),
+        ),
       );
+
+      expect(routes.root, const [TestRoute('initial')]);
     });
   });
 }
