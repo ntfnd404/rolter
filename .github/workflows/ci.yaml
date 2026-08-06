@@ -125,6 +125,10 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Install image inspection tools for pana
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes webp
       - name: Validate screenshot limits
         shell: bash
         run: |
