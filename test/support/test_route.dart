@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 
 /// Minimal [RouteNode] for engine tests. Has explicit value equality over
@@ -24,10 +23,6 @@ class TestRoute implements RouteNode {
   @override
   RouteNode withChildren(List<RouteNode> children) =>
       TestRoute(name, children: children);
-
-  @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: SizedBox());
 
   @override
   int get hashCode => Object.hash(name, Object.hashAll(children));

@@ -4,7 +4,8 @@
 /// The engine is screen-agnostic: it never imports application screens, and it
 /// never downcasts to a concrete `Page` type. An app builds a catalog of typed
 /// routes on top of this barrel (route nodes, a registry, and a navigator
-/// facade) and renders them via [NavigatorScope].
+/// facade), then supplies a [RouteNodePageBuilder] to the root and nested
+/// navigators. [NavigatorScope] is an optional application-level facade.
 ///
 /// The `pages/` and `transitions/` exports are **optional batteries**
 /// (`TransparentPage`, `NoAnimationPage`, `TransitionPage`,
@@ -35,6 +36,8 @@ export 'src/model/tree_url_codec.dart' show TreeUrlCodec;
 export 'src/navigation/navigation_controller.dart' show NavigationController;
 export 'src/navigation/navigation_service.dart' show NavigationService;
 export 'src/pages/no_animation_page.dart' show NoAnimationPage;
+export 'src/pages/route_page_builder.dart'
+    show PageRouteNode, RouteNodePageBuilder, buildPageFromRouteNode;
 export 'src/pages/transition_page.dart' show TransitionPage;
 export 'src/pages/transparent_page.dart' show TransparentPage;
 export 'src/state/nav_observer.dart' show NavObserver, NavTransition;

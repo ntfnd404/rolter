@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import '../model/route_node.dart';
 import '../model/route_tree.dart';
 import '../navigation/navigation_service.dart';
+import '../pages/route_page_builder.dart';
 
 /// Hosts a child [Navigator] over the children of the tree node at [path].
 ///
@@ -24,6 +25,7 @@ class NestedNavigatorHost<R extends RouteNode> extends StatefulWidget {
   const NestedNavigatorHost({
     required this.service,
     required this.path,
+    required this.pageBuilder,
     this.active = true,
     this.transitionDelegate,
     this.onBackButtonPressed,
@@ -35,6 +37,27 @@ class NestedNavigatorHost<R extends RouteNode> extends StatefulWidget {
 
   /// Path of the shell/tab node whose children this navigator hosts.
   final List<String> path;
+
+  /// Builds every page in the hosted child stack.
+  ///
+  /// Use the same composition strategy as the root delegate, or a deliberately
+  /// isolated builder that supports every route type in this subtree.
+  ///
+  /// ```dart
+  /// import 'package:flutter/material.dart';
+  /// import 'package:rolter/rolter.dart';
+  ///
+  /// Widget buildNestedHost(NavigationService<RouteNode> navigator) =>
+  /// NestedNavigatorHost<RouteNode>(
+  ///   service: navigator,
+  ///   path: const ['shell'],
+  ///   pageBuilder: (context, route) => MaterialPage<Object?>(
+  ///     key: route.pageKey,
+  ///     child: const SizedBox(),
+  ///   ),
+  /// );
+  /// ```
+  final RouteNodePageBuilder<R> pageBuilder;
 
   /// Whether this host should take back-button priority.
   final bool active;
@@ -103,12 +126,14 @@ class _NestedNavigatorHostState<R extends RouteNode>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final parent = Router.of(context).backButtonDispatcher;
-    if (parent != null && !identical(parent, _parent)) {
+    final nextParent = Router.of(context).backButtonDispatcher;
+    if (!identical(nextParent, _parent)) {
       _disposeDispatcher();
-      _parent = parent;
-      _childDispatcher = parent.createChildBackButtonDispatcher()
-        ..addCallback(_handleBackButton);
+      _parent = nextParent;
+      if (nextParent != null) {
+        _childDispatcher = nextParent.createChildBackButtonDispatcher()
+          ..addCallback(_handleBackButton);
+      }
     }
     _syncPriority();
   }
@@ -128,13 +153,12 @@ class _NestedNavigatorHostState<R extends RouteNode>
   }
 
   void _disposeDispatcher() {
-    final parent = _parent;
     final dispatcher = _childDispatcher;
     if (dispatcher != null) {
       dispatcher.removeCallback(_handleBackButton);
-      parent?.forget(dispatcher);
     }
     _childDispatcher = null;
+    _parent = null;
   }
 
   @override
@@ -150,9 +174,24 @@ class _NestedNavigatorHostState<R extends RouteNode>
           widget.transitionDelegate ??
           const DefaultTransitionDelegate<Object?>(),
       pages: <Page<Object?>>[
-        for (final child in node.children) child.buildPage(context),
+        for (final child in node.children)
+          buildRoutePage<R>(
+            pageBuilder: widget.pageBuilder,
+            context: context,
+            route: _typedChild(child),
+          ),
       ],
       onDidRemovePage: _onDidRemovePage,
+    );
+  }
+
+  R _typedChild(RouteNode child) {
+    if (child is R) {
+      return child;
+    }
+    throw StateError(
+      'Nested route tree contains a child incompatible with the host route '
+      'type.',
     );
   }
 }

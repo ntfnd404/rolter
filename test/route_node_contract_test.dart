@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
 
@@ -24,10 +24,6 @@ final class _Leaf with KeyedRouteEquality {
 
   @override
   RouteNode withChildren(List<RouteNode> children) => this;
-
-  @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: SizedBox());
 }
 
 /// Another leaf with the same key shape but a different runtime type.
@@ -50,10 +46,6 @@ final class _OtherLeaf with KeyedRouteEquality {
 
   @override
   RouteNode withChildren(List<RouteNode> children) => this;
-
-  @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: SizedBox());
 }
 
 /// A shell that only allows children named `ok`.
@@ -74,10 +66,6 @@ class _StrictShell implements RouteNode, StrictHierarchy {
 
   @override
   RouteNode withChildren(List<RouteNode> children) => _StrictShell(children);
-
-  @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: SizedBox());
 
   @override
   bool allowsChild(RouteNode child) => child.name == 'ok';

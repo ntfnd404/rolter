@@ -1,19 +1,64 @@
 # rolter example
 
+## Runnable composition approaches
+
+This package keeps four reference applications in isolated folders under
+`lib/apps/`. They exist because they solve four different application shapes,
+not because Rolter exposes four competing composition APIs. Rolter's two core
+modes are route-owned Pages and an external Page builder.
+
+All four apps share only content-only Flutter widgets from `lib/common/ui/`
+for a comparable Home → Items → Item detail flow:
+
+- **Feature-first** solves modular ownership with data-only routes, typed Page
+  contributions, and narrow constructor injection. It is the default.
+- **Centralized route-owned** solves the conventional small-app case with one
+  route catalog and minimum boilerplate.
+- **External builder + Scope** separates UI from route data while preserving
+  an existing inherited-DI model.
+- **Router-neutral adapter** isolates application contracts for a concrete
+  multi-app or multi-router requirement. It is deliberately bounded and
+  application-only.
+
+`AppScope` was an application-specific inherited container, not Rolter API. A
+user-defined `AppScope.of(context)` still works when placed above the router,
+but the primary example avoids exposing the entire dependency graph to leaf
+widgets.
+
+The adapter entrypoint is not the enterprise default and does not reproduce
+nested navigation, namespaces, guards, history, results, or restoration behind
+a neutral SPI. Its purpose is to make the extra model and mapping cost concrete
+when multi-app or multi-router reuse is an actual requirement.
+
 A small app exercising the [`rolter`](../) routing engine end to end. Every
 scenario on the home screen maps to one typed route in the catalog.
 
-The catalog is organised **feature-first**: each feature owns its routes,
-screens, wire-name enum, decoder contribution, and navigation sugar; `routing/`
-holds the shared core and the composition root that aggregates them. (See the
-package README for the monolithic `sealed` alternative for small apps.)
+The primary app is organised **feature-first**: each feature owns data-only
+routes, screens, wire-name enum, decoder contribution, typed page contribution,
+and navigation sugar. Its `composition/` directory only aggregates those
+contributions. The other app folders remain independent alternatives.
 
 ## Run
 
 ```bash
 cd example
-flutter run            # or: -d macos / -d chrome
+flutter run # defaults to feature-first
+
+# Select through the root compile-time launcher:
+flutter run --dart-define-from-file=env/feature_first.env
+flutter run --dart-define-from-file=env/centralized_route_owned.env
+flutter run --dart-define-from-file=env/external_builder_scope.env
+flutter run --dart-define-from-file=env/router_neutral_adapter.env
+
+# Or compile one isolated import graph directly:
+flutter run -t lib/apps/feature_first/main.dart
+flutter run -t lib/apps/centralized_route_owned/main.dart
+flutter run -t lib/apps/external_builder_scope/main.dart
+flutter run -t lib/apps/router_neutral_adapter/main.dart
 ```
+
+Open `example/` as the VS Code workspace to use the same four launch presets.
+The root launcher is developer convenience, not a fifth architecture.
 
 ## What it demonstrates
 
@@ -34,7 +79,8 @@ flutter run            # or: -d macos / -d chrome
 
 ## Custom `Page` types in use
 
-The engine is page-agnostic, so a route's `buildPage` may return any `Page`:
+The engine is page-agnostic, so a typed page contribution may return any
+`Page`:
 
 - `NoAnimationPage` (engine) — the lock screen appears instantly on redirect.
 - `NoAnimationTransitionDelegate` (engine) — the whole Items tab switches with
@@ -45,9 +91,9 @@ The engine is page-agnostic, so a route's `buildPage` may return any `Page`:
 
 ## Nested navigation & the AppBar
 
-The engine never imposes a `Scaffold`/`AppBar`; `buildPage` returns any widget,
-so the AppBar is entirely the app's choice — pick a strategy by where you place
-`Scaffold(appBar:)`:
+The engine never imposes a `Scaffold`/`AppBar`; the external page catalog
+returns any widget, so the AppBar is entirely the app's choice — pick a strategy
+by where you place `Scaffold(appBar:)`:
 
 - **Shared AppBar over a nested stack** — the Tabs demo: `TabsShell` owns one
   AppBar and the nested screens are content only. Because that AppBar is outside
@@ -67,27 +113,26 @@ hook that mirrors the AppBar's cascade for the system back button.
 
 ```
 lib/
-  main.dart      entry point — runApp(ExampleApp())
-  app.dart       ExampleApp: the root widget (wires the engine + AppScope)
-  core/
-    routing/     app_route (base), app_navigator, app_registry (composition root),
-                 nav_log_observer — the app-wide routing layer
-    di/          app_dependencies + app_scope — the app-wide DI container
-  feature/
-    home/ detail/ animated/ picker/ confirm/ route_scope/ editor/
-    session/ mailbox/ not_found/
-    tabbed_stack/           Tabs + nested stack — shell/ (host) + shared/ (item
-                            domain/ data/) + items/ item_detail/ settings/
-    independent_tab_stacks/ each tab keeps its own stack — shell/ + list/ detail/
-    sub_routers/            mounted feature sub-routers — shell/ + home/ detail/
+  main.dart                    compile-time launcher (feature-first default)
+  example_app_launcher.dart    selection only; not a fifth architecture
+  common/ui/                   presentation-only comparison widgets
+  apps/
+    centralized_route_owned/  one catalog with route-owned Pages
+    external_builder_scope/   route_data + external composition + Scope
+    feature_first/             enterprise feature contributions
+    router_neutral_adapter/   application SPI + RolterAdapter
 ```
 
-`core/` holds the app-wide routing and DI (including the registry that composes
-every feature), `app.dart` is the root widget, and each `feature/` owns its routes
-(`routing/`), screens (`view/`), and any state. State holders sit by approach:
+Inside `apps/feature_first/`, each feature owns data-only `routing/`, separate
+`page_composition/`, screens under `view/`, and any state. The app page catalog
+captures `AppDependencies`, then passes only `MailRepository` or
+`ItemRepository` to the features that need them; leaf widgets never read the
+full dependency container.
+State holders sit by approach:
 `bloc/` for a `Bloc` (session), `controller/` for a `ChangeNotifier` (route_scope).
 A scenario that spans several routes is a **group**: its host lives in a `shell/`
 sub-folder (`routing/`+`view/`, plus shared `domain/`+`data/` where needed) and
-the sub-features are sibling folders. This mirrors the reference architecture
-(`core/` + `feature/` + top-level `app.dart`); see the package README's
-"Organising the catalog" for the rationale.
+the sub-features are sibling folders. This preserves the reference architecture
+without mixing alternative approaches into its import graph; see
+[Page composition and application architecture](../doc/page_composition.md)
+for the rationale and comparison.

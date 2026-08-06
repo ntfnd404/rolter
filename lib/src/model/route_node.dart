@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 
 /// A typed node in the navigation tree.
 ///
@@ -28,10 +28,11 @@ import 'package:flutter/widgets.dart';
 /// not in [pageKey] (e.g. a tab shell keyed `'tabs'` but distinguished by the
 /// active tab) must override `==`/`hashCode` to compare those instead.
 abstract interface class RouteNode {
-  /// Stable page identity. Used by [buildPage] and by the delegate to match
-  /// the page removed in `onDidRemovePage` back to its node (see
-  /// `removeNodeByKey`). Must be unique across the whole tree and encode every
-  /// identity-bearing param (see the class doc's identity contract).
+  /// Stable page identity. A page builder must use this as the returned
+  /// `Page.key`; root and nested delegates use it to match a page removed in
+  /// `onDidRemovePage` back to its node (see `removeNodeByKey`). Must be unique
+  /// across the whole tree and encode every identity-bearing param (see the
+  /// class doc's identity contract).
   LocalKey get pageKey;
 
   /// URL path segment and registry key (e.g. `home`). Written to and read from
@@ -46,20 +47,11 @@ abstract interface class RouteNode {
   /// never see this map.
   Map<String, String> toParams();
 
-  /// Returns a copy of this node with its [children] replaced. A leaf returns
-  /// `this`. Required by tree mutation (`mutateNodeAt`).
+  /// Returns a copy of this node with its [children] replaced. The result must
+  /// stay in the same application route family as this node so typed tree
+  /// mutations remain valid. A leaf returns `this`. Required by tree mutation
+  /// (`mutateNodeAt`).
   RouteNode withChildren(List<RouteNode> children);
-
-  /// Builds the page for this node. A nested node hosts a child navigator over
-  /// its [children] (see `NestedNavigatorHost`).
-  ///
-  /// Return any [Page] — the engine never downcasts to a concrete page type, so
-  /// flat, nested, dialog, and custom-transition routes share one path. The one
-  /// invariant: a custom [Page] whose `createRoute` builds its own [Route] MUST
-  /// pass `settings: this` to that route. The delegate matches a removed page
-  /// back to its node by [pageKey] read from the route's `settings`; a route
-  /// without it never drops its node, leaking it from the tree.
-  Page<Object?> buildPage(BuildContext context);
 }
 
 /// Marker for nodes kept out of browser history (e.g. a not-found route). The

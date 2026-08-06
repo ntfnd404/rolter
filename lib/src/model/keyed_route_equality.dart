@@ -13,7 +13,7 @@ import 'route_node.dart';
 ///   final int id;
 ///   @override
 ///   LocalKey get pageKey => ValueKey('item:$id');
-///   // name / toParams / buildPage ...
+///   // name / children / toParams / withChildren ...
 /// }
 /// ```
 ///

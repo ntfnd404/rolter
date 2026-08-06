@@ -10,8 +10,14 @@ published release tag.
 - Breaking Dart API or URL grammar changes increment the minor version.
 - Raising the minimum Dart or Flutter SDK increments the minor version and
   requires a migration note.
-- Public API stays deprecated for at least one complete minor release before
-  removal, except when a security-critical fix requires faster removal.
+- Before 1.0, deprecation is required only when a compatibility path is both
+  inexpensive and architecturally correct. A clean removal in `0.x.0` requires
+  explicit owner approval, a `Breaking changes` changelog section, and a
+  migration guide; do not create a temporary compatibility hierarchy solely to
+  avoid a minor-version breaking change.
+- From 1.0 onward, deprecated public API remains available for at least one
+  complete minor release and is removed only in a subsequent major release,
+  except when a security-critical fix requires faster removal.
 - The encoder writes the current URL wire format. The decoder accepts the
   previous minor's format for at least one complete minor release cycle.
 
@@ -27,6 +33,9 @@ published release tag.
       been reviewed for secrets, local paths, generated output, and excess
       files.
 - [ ] Both screenshots and the package archive are within pub.dev limits.
+- [ ] `screenshots/architecture.svg` was reviewed at original size and zoom;
+      `architecture.webp` was manually derived from that SVG rather than
+      edited independently, and both render the same diagram.
 - [ ] Repository, issue tracker, homepage, and package-name availability have
       been rechecked over HTTPS.
 - [ ] The publishing Google Account is an administrator of verified publisher
@@ -38,26 +47,47 @@ published release tag.
 Do not commit `coverage/lcov.info`, `doc/api`, build output, credentials, or a
 long-lived pub.dev token.
 
-## First release: manual upload
+## Package page and breaking-change notes
 
-The first pub.dev release is `0.1.0`. Existing historical tag `v0.0.1` is not
-moved or deleted.
+Pub.dev has no separate breaking-change form. It renders the package's root
+`CHANGELOG.md` in the **Changelog** tab, so every breaking release must make its
+top version section self-contained: mark the breaking change explicitly,
+describe removed and required APIs, include a minimal before/after migration,
+and link the complete guide. Keep version headings consistent so tools can
+parse them. See Dart's
+[package layout conventions](https://dart.dev/tools/pub/package-layout).
 
-1. Record the green release commit with `git rev-parse HEAD`.
-2. Create a clean detached checkout of that commit, without creating a tag.
-3. Repeat analyze, tests, docs, `pana`, archive inspection, and publish dry-run.
-4. Run `dart pub publish` and complete pub.dev authentication manually.
-5. Confirm that `rolter 0.1.0` is visible and healthy on pub.dev.
-6. Create annotated tag `v0.1.0` on the recorded commit and push it.
-7. Create GitHub Release `rolter 0.1.0` from the changelog and link pub.dev.
-8. Verify README, changelog, example, API docs, screenshots, platforms, links,
-   and score on pub.dev.
-9. Transfer the package to `ntfnd404.dev` and verify its publisher badge.
-10. Only then enable the OIDC workflow for later releases.
+The root `README.md` is the package landing page. Follow the official
+[package-page guidance](https://dart.dev/tools/pub/writing-package-pages): keep
+the description and constraints near the top, place useful visuals early, use
+lists and Dart-formatted copyable examples, mention searchable terms such as
+dependency injection, centralized routing, feature-first routing, nested
+navigation, and deep linking, and tell readers where to continue. Use absolute
+URLs for images so they render consistently outside GitHub.
 
-If upload fails before pub.dev registers the version, fix the cause and reuse
-`0.1.0`; no tag exists yet. If pub.dev registered the version, never replace
-its contents: publish the next SemVer version.
+Pub.dev selects a conventional file under `example/` for its **Example** tab.
+Rolter uses `example/example.md` to index the runnable feature-first,
+centralized, narrow-scope, and adapter entrypoints. Before release, verify every
+command and link in that file and inspect all four package tabs: README,
+Changelog, Example, and API reference.
+
+For a pre-1.0 breaking release, Dart convention shifts semantic versioning down
+one position: `0.1.x` to `0.2.0` communicates a breaking change. See
+[package versioning](https://dart.dev/tools/pub/versioning). Before any upload,
+run `dart pub publish --dry-run`, inspect the complete archive file list, and
+resolve every warning; the command performs publication validation without
+uploading. See the official
+[`dart pub publish` reference](https://dart.dev/tools/pub/cmd/pub-lish).
+
+## Historical first release
+
+The first pub.dev release, `0.1.0`, has already been published manually.
+Existing historical tags are immutable. Do not repeat the first-release flow or
+attempt to replace its archive.
+
+Rolter `0.2.0` is a later release and follows the OIDC flow below after owner
+approval. Preparing `pubspec.yaml`, changelog, docs, and dry-run metadata does
+not authorize a commit, tag, release, or upload.
 
 ## Later releases: GitHub OIDC
 

@@ -22,13 +22,13 @@ minimum and the latest stable release.
 
 ## Architecture
 
-![Rolter architecture](screenshots/architecture.webp)
+![Rolter architecture](https://raw.githubusercontent.com/ntfnd404/rolter/main/screenshots/architecture.webp)
 
 The URL codec reconstructs typed route nodes, guards settle the requested
 tree, and `RoutesState` commits a single source of truth rendered by root and
 nested navigators.
 
-![Deep link followed by nested and root back navigation](screenshots/deep_link_nested_back.gif)
+![Deep link followed by nested and root back navigation](https://raw.githubusercontent.com/ntfnd404/rolter/main/screenshots/deep_link_nested_back.gif)
 
 The animation opens a deep link into a nested stack, then removes the nested
 detail before returning through the root stack.
@@ -39,7 +39,7 @@ Add `rolter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  rolter: ^0.1.0
+  rolter: ^0.2.0
 ```
 
 ## Usage
@@ -48,8 +48,8 @@ dependencies:
 import 'package:flutter/material.dart';
 import 'package:rolter/rolter.dart';
 
-// 1. Define a typed route tree.
-sealed class AppRoute implements RouteNode {
+// 1. Define a typed route tree. PageRouteNode is the concise route-owned mode.
+sealed class AppRoute with KeyedRouteEquality implements PageRouteNode {
   const AppRoute();
   @override
   List<AppRoute> get children => const [];
@@ -66,8 +66,11 @@ final class HomeRoute extends AppRoute {
   @override
   Map<String, String> toParams() => const {};
   @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: Scaffold(body: Center(child: Text('Home'))));
+  Page<Object?> buildPage(BuildContext context) => MaterialPage<Object?>(
+    key: pageKey,
+    name: name,
+    child: const Scaffold(body: Center(child: Text('Home'))),
+  );
 }
 
 // 2. Register decoders so URLs / deep links rebuild the tree.
@@ -80,7 +83,10 @@ final registry = RouteRegistry<AppRoute>(
 final state = RoutesState<AppRoute>(const [HomeRoute()], (stack) => stack);
 
 final app = MaterialApp.router(
-  routerDelegate: RoutingDelegate<AppRoute>(state),
+  routerDelegate: RoutingDelegate<AppRoute>(
+    state,
+    pageBuilder: buildPageFromRouteNode<AppRoute>,
+  ),
   routeInformationParser:
       RoutingInformationParser<AppRoute>(TreeUrlCodec(registry)),
 );
@@ -91,11 +97,108 @@ To call navigation from screens via `context.navigator`, place a
 `MaterialApp.router` — see the [`example/`](example/) app. The snippet above
 renders and deep-links without it.
 
-See the [`example/`](example/) app for nested navigation, tabs, route guards,
-push-for-result, dialog-as-route, and per-route dependency scopes.
+For application-owned composition, dependency-injection options, and exact
+scope visibility, see [Page composition](doc/page_composition.md). The
+[`example/`](example/) app is the feature-first external-composition reference
+and also demonstrates nested navigation, guards, results, and per-route scopes.
 
 Import only `package:rolter/rolter.dart`. Anything under
 `package:rolter/src/` is implementation detail and may change in any release.
+
+## Dependency injection (DI) and page composition
+
+Choose the example that matches the shape of your application. Rolter itself
+has only two core Page-composition modes: route-owned `PageRouteNode`, or a
+data-only `RouteNode` mapped by an external `RouteNodePageBuilder`. The four
+runnable architectures combine those primitives with different routing
+ownership, dependency delivery, and portability requirements.
+
+| Runnable architecture | Best fit | Main trade-off |
+|---|---|---|
+| Centralized route-owned | Conventional small apps that need one complete routing map | Least code; route data knows Flutter UI |
+| External builder + narrow `Scope.of` | Existing inherited DI or staged UI separation | Clean route data; runtime scope placement |
+| Feature-first + constructor injection | Modular Rolter apps (recommended) | Feature ownership and explicit dependencies; small application catalog |
+| Router-neutral application adapter | Real multi-app or multi-router platforms | Portability for its bounded subset; two models and adapter tests |
+
+Centralized versus feature-first describes who owns routing files. Scope versus
+constructor injection describes dependency flow. The adapter adds an
+application-owned portability boundary; it is example code, not a fourth
+Rolter composition API.
+
+Route-owned composition uses the permanent adapter shown in the quick start:
+
+```dart
+final delegate = RoutingDelegate<AppRoute>(
+  state,
+  pageBuilder: buildPageFromRouteNode<AppRoute>,
+);
+```
+
+With a data-only route, composition moves to an application builder:
+
+```dart
+Page<Object?> buildAppPage(BuildContext context, AppRoute route) =>
+    switch (route) {
+      MailboxRoute() => MaterialPage<Object?>(
+        key: route.pageKey,
+        name: route.name,
+        child: MailboxScreen(repository: mailRepository),
+      ),
+    };
+
+final delegate = RoutingDelegate<AppRoute>(
+  state,
+  pageBuilder: buildAppPage,
+);
+```
+
+The builder can capture a constructor-injected dependency or read an
+application-defined narrow scope. Both a scope above `MaterialApp.router` and a
+scope returned by `MaterialApp.router.builder` wrap the Router, so both are
+visible to the delegate Page builder and Page subtree. A user-defined
+`AppScope.of(context)` still works; `AppScope` was example code, never Rolter
+API. Prefer capability-specific scopes over broad container lookup from leaf
+widgets.
+
+The four runnable references are:
+
+- [`example/lib/apps/feature_first/`](example/lib/apps/feature_first/): modular,
+  constructor-injected Rolter-native enterprise reference and default app;
+- [`example/lib/apps/centralized_route_owned/`](example/lib/apps/centralized_route_owned/):
+  centralized route-owned composition;
+- [`example/lib/apps/external_builder_scope/`](example/lib/apps/external_builder_scope/):
+  external builder with a narrow inherited scope;
+- [`example/lib/apps/router_neutral_adapter/`](example/lib/apps/router_neutral_adapter/):
+  application-only, router-neutral flat adapter example.
+
+Each folder is an isolated application import graph. They share only pure
+Flutter presentation content for the same Home → Items → Item detail flow, so
+the routing and dependency differences can be compared without duplicating UI.
+The feature-first app additionally retains the complete advanced showcase.
+
+From `example/`, select an app through the compile-time launcher:
+
+```bash
+flutter run --dart-define-from-file=env/feature_first.env
+```
+
+Or run the dedicated entrypoint to verify its isolated import graph:
+
+```bash
+flutter run -t lib/apps/feature_first/main.dart
+```
+
+Open `example/` as the VS Code workspace to use its four launch presets.
+
+`RoutingDelegate.pageBuilder` and `NestedNavigatorHost.pageBuilder` are
+required. Every result uses `key: route.pageKey`; builders are synchronous and
+non-owning, so disposable resources belong to a provider or `RouteScope`.
+
+Read [Page composition and application architecture](doc/page_composition.md)
+to choose by application shape and compare ownership, dependency flow,
+lifecycle, extensibility, and router portability. See
+[Migration from 0.1.x to 0.2.0](doc/migration_0_1_to_0_2.md) for the exact
+breaking API diff.
 
 ## Extensible navigation scheduling and security
 
@@ -130,7 +233,7 @@ duplicate key before commit. For a leaf, put the params in the key and mix in
 `KeyedRouteEquality`:
 
 ```dart
-final class ItemRoute with KeyedRouteEquality {
+final class ItemRoute with KeyedRouteEquality implements RouteNode {
   const ItemRoute(this.id);
   final int id;
   @override
@@ -143,8 +246,6 @@ final class ItemRoute with KeyedRouteEquality {
   Map<String, String> toParams() => {'id': '$id'};
   @override
   RouteNode withChildren(List<RouteNode> children) => this;
-  @override
-  Page<Object?> buildPage(BuildContext context) => /* ... */;
 }
 ```
 
@@ -357,9 +458,9 @@ rolter is URL-strategy-agnostic — pick one in your app's `main()`:
 
 ## Custom pages & transitions
 
-A route's `buildPage` may return **any** `Page` — the engine never downcasts to
-a concrete page type, so flat, nested, dialog, and custom-transition routes all
-share one code path. Pick by how much you need:
+A `RouteNodePageBuilder` may return **any** `Page` — the engine never downcasts
+to a concrete page type, so flat, nested, dialog, and custom-transition routes
+all share one code path. Pick by how much you need:
 
 | Need | Return | Custom `Route`? |
 |---|---|---|
@@ -371,19 +472,6 @@ share one code path. Pick by how much you need:
 MUST pass `settings: this`. The delegate matches a removed page back to its node
 by `pageKey` read from the route's `settings`; omit it and the node leaks from
 the tree.
-
-## Organising the catalog
-
-`RouteRegistry` takes a plain decoder map, so the catalog can be assembled two
-ways:
-
-- **Monolithic** — one `sealed AppRoute` + one registry; you get an exhaustive
-  `switch` over routes.
-- **Feature-first** — each feature contributes a decoder map (non-sealed routes,
-  so they can live in separate packages), merged into one registry, or mounted as
-  isolated sub-routers via `composeFeatureRouters`.
-
-See [`example/`](example/) for a worked feature-first layout.
 
 ## Additional information
 

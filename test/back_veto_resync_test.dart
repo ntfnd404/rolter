@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
 
-/// A screen node whose page shows an AppBar (so a back button appears) and a
-/// findable body.
+/// A screen node rendered by the test page builder.
 @immutable
 class _Screen implements RouteNode {
   const _Screen(this.name);
@@ -24,20 +23,20 @@ class _Screen implements RouteNode {
   RouteNode withChildren(List<RouteNode> children) => this;
 
   @override
-  Page<Object?> buildPage(BuildContext context) => MaterialPage(
-    key: pageKey,
-    child: Scaffold(
-      appBar: AppBar(title: Text('$name-title')),
-      body: Center(child: Text('$name-body')),
-    ),
-  );
-
-  @override
   int get hashCode => name.hashCode;
 
   @override
   bool operator ==(Object other) => other is _Screen && other.name == name;
 }
+
+Page<Object?> _buildScreenPage(BuildContext context, _Screen route) =>
+    MaterialPage<Object?>(
+      key: route.pageKey,
+      child: Scaffold(
+        appBar: AppBar(title: Text('${route.name}-title')),
+        body: Center(child: Text('${route.name}-body')),
+      ),
+    );
 
 void main() {
   testWidgets(
@@ -54,7 +53,10 @@ void main() {
         pipeline,
       );
       addTearDown(state.dispose);
-      final delegate = RoutingDelegate<_Screen>(state);
+      final delegate = RoutingDelegate<_Screen>(
+        state,
+        pageBuilder: _buildScreenPage,
+      );
       addTearDown(delegate.dispose);
 
       await tester.pumpWidget(

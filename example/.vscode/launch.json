@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Rolter example: feature-first",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/feature_first.env"
+      ]
+    },
+    {
+      "name": "Rolter example: centralized route-owned",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/centralized_route_owned.env"
+      ]
+    },
+    {
+      "name": "Rolter example: external builder + Scope",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/external_builder_scope.env"
+      ]
+    },
+    {
+      "name": "Rolter example: router-neutral adapter",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/router_neutral_adapter.env"
+      ]
+    }
+  ]
+}
