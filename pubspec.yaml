@@ -1,5 +1,5 @@
 name: rolter
-description: "A declarative, tree-based router for Flutter focused on typed routes and nested navigation"
+description: "A typed, tree-based Flutter router with deep linking, nested navigation, guards, and external Page composition."
 version: 0.2.0
 
 homepage: https://github.com/ntfnd404/rolter

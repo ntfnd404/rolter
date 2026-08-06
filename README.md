@@ -1,13 +1,15 @@
 # Rolter
 
-A hand-rolled, declarative Navigator 2.0 routing engine for Flutter with a
-typed, URL-serializable route tree and built-in nested navigation.
+A typed, tree-based Flutter router with deep linking, nested navigation,
+guards, and external Page composition.
 
 ## Features
 
-- Declarative, tree-based route configuration
-- Typed routes with URL serialization/deserialization
-- Built-in support for nested navigation
+- Typed, URL-serializable route trees
+- Route-owned or external Flutter Page composition
+- Root and nested navigators driven by one route-state tree
+- Guards, navigation history, results, and restoration
+- Custom Pages, transitions, and independent nested stacks
 - Built directly on top of Navigator 2.0 (`Router`, `RouterDelegate`,
   `RouteInformationParser`)
 
