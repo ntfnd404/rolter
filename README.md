@@ -53,20 +53,26 @@ import 'package:rolter/rolter.dart';
 // 1. Define a typed route tree. PageRouteNode is the concise route-owned mode.
 sealed class AppRoute with KeyedRouteEquality implements PageRouteNode {
   const AppRoute();
+
   @override
   List<AppRoute> get children => const [];
+
   @override
   AppRoute withChildren(List<RouteNode> children) => this;
 }
 
 final class HomeRoute extends AppRoute {
   const HomeRoute();
+
   @override
   LocalKey get pageKey => const ValueKey('home');
+
   @override
   String get name => 'home';
+
   @override
   Map<String, String> toParams() => const {};
+
   @override
   Page<Object?> buildPage(BuildContext context) => MaterialPage<Object?>(
     key: pageKey,
@@ -237,15 +243,21 @@ duplicate key before commit. For a leaf, put the params in the key and mix in
 ```dart
 final class ItemRoute with KeyedRouteEquality implements RouteNode {
   const ItemRoute(this.id);
+
   final int id;
+
   @override
   LocalKey get pageKey => ValueKey('item:$id'); // every param in the key
+
   @override
   String get name => 'item';
+
   @override
   List<RouteNode> get children => const [];
+
   @override
   Map<String, String> toParams() => {'id': '$id'};
+
   @override
   RouteNode withChildren(List<RouteNode> children) => this;
 }
@@ -301,6 +313,7 @@ GuardResult<AppRoute> call(history, requested, context) {
   if (_pending.hasPending && onLockScreen) {
     return GuardResult.proceed(_pending.take()!); // restore it on unlock
   }
+
   return GuardResult.proceed(requested);
 }
 ```
@@ -328,6 +341,7 @@ final class LockGuard implements RouteGuard<AppRoute> {
 
   @override
   void addListener(VoidCallback l) => _refresh.addListener(l);
+
   @override
   void removeListener(VoidCallback l) => _refresh.removeListener(l);
 
@@ -340,6 +354,7 @@ final class LockGuard implements RouteGuard<AppRoute> {
     if (_pending.hasPending && onLockScreen) {
       return GuardResult.proceed(_pending.take()!);
     }
+
     return GuardResult.proceed(requested);
   }
 
@@ -474,16 +489,3 @@ all share one code path. Pick by how much you need:
 MUST pass `settings: this`. The delegate matches a removed page back to its node
 by `pageKey` read from the route's `settings`; omit it and the node leaks from
 the tree.
-
-## Additional information
-
-Rolter validates duplicate page keys and URL-unsafe route names in every build
-mode and rejects them before commit or encoding. `StrictHierarchy` remains an
-opt-in debug diagnostic for mis-wired nesting; other debug assertions are also
-programming diagnostics, not production input validation. Applications must
-still validate external route data and authorize every security-sensitive
-operation on the server.
-
-- Source code: https://github.com/ntfnd404/rolter
-- Issue tracker: https://github.com/ntfnd404/rolter/issues
-- License: BSD-3-Clause
