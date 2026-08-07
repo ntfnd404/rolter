@@ -6,9 +6,14 @@ import 'scope_access.dart';
 ///
 /// Creates a value (a BLoC, controller, or small dependency graph) in
 /// `initState` and disposes it in `dispose`. Placed inside a route's
-/// `buildPage`, it lives exactly as long as that page's element: when the page
-/// is removed (correct `onDidRemovePage`), Flutter unmounts the subtree and
-/// `dispose` runs. Screens that need no scope stay bare; both coexist.
+/// page subtree returned by a `RouteNodePageBuilder`, it lives exactly as long
+/// as that page's element: when the page is removed (correct
+/// `onDidRemovePage`), Flutter unmounts the subtree and `dispose` runs. The
+/// builder only describes this ownership; the [RouteScope] owns the resource.
+/// Screens that need no scope stay bare; both coexist.
+///
+/// A rebuild keeps the existing value and its original disposer. To replace a
+/// resource when its identity changes, give this widget a different [key].
 class RouteScope<T> extends StatefulWidget {
   /// Creates a scope that builds its value with [create] and tears it down
   /// with [dispose].
@@ -41,16 +46,22 @@ class RouteScope<T> extends StatefulWidget {
 
 class _RouteScopeState<T> extends State<RouteScope<T>> {
   late final T _value;
+  late final void Function(T value) _disposeValue;
+  bool _created = false;
 
   @override
   void initState() {
     super.initState();
+    _disposeValue = widget.dispose;
     _value = widget.create();
+    _created = true;
   }
 
   @override
   void dispose() {
-    widget.dispose(_value);
+    if (_created) {
+      _disposeValue(_value);
+    }
     super.dispose();
   }
 

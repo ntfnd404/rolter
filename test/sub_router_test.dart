@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
 
@@ -27,10 +27,6 @@ class _Node implements RouteNode {
   @override
   RouteNode withChildren(List<RouteNode> children) =>
       _Node(name, params: params, children: children, tag: tag);
-
-  @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: SizedBox());
 }
 
 String _tagOf(RouteNode node) => (node as _Node).tag;

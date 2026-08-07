@@ -1,4 +1,5 @@
-import 'app.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const ExampleApp());
+import 'example_app_launcher.dart';
+
+void main() => runApp(createConfiguredExampleApp());

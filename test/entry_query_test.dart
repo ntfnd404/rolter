@@ -21,10 +21,10 @@ class _Node implements RouteNode {
 
   @override
   RouteNode withChildren(List<RouteNode> children) => this;
+}
 
-  @override
-  Page<Object?> buildPage(BuildContext context) =>
-      const MaterialPage(child: SizedBox());
+final class _ExcludedNode extends _Node implements HistoryExcluded {
+  const _ExcludedNode(super.name);
 }
 
 void main() {
@@ -58,5 +58,19 @@ void main() {
 
     expect(fired, 2);
     expect(store.value, {'a': '2'});
+  });
+
+  test('history-excluded top route is not restored to route information', () {
+    expect(
+      parser.restoreRouteInformation(const [
+        _Node('a'),
+        _ExcludedNode('not-found'),
+      ]),
+      isNull,
+    );
+    expect(
+      parser.restoreRouteInformation(const [_Node('a')]),
+      isNotNull,
+    );
   });
 }

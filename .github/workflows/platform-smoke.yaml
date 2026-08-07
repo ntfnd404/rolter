@@ -33,7 +33,13 @@ jobs:
       - working-directory: example
         run: flutter build apk --debug
       - working-directory: example
-        run: flutter build web
+        run: flutter build web --dart-define-from-file=env/feature_first.env
+      - working-directory: example
+        run: flutter build web --target lib/apps/centralized_route_owned/main.dart
+      - working-directory: example
+        run: flutter build web --target lib/apps/external_builder_scope/main.dart
+      - working-directory: example
+        run: flutter build web --target lib/apps/router_neutral_adapter/main.dart
       - working-directory: example
         run: flutter build web --wasm
       - working-directory: example

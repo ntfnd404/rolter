@@ -18,10 +18,10 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-.vscode/
+# Track only the shared launcher presets for this runnable Flutter example.
+# Personal VS Code state remains ignored.
+.vscode/*
+!.vscode/launch.json
 
 # Flutter/Dart/Pub related
 **/doc/api/

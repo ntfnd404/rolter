@@ -4,9 +4,11 @@ import 'scope_access.dart';
 
 /// Inherited facade exposing the app's navigator to the widget tree.
 ///
-/// Must sit ABOVE `MaterialApp.router` (not inside its `builder:`), so the
-/// delegate's build context — and therefore every `buildPage` and screen — can
-/// read it. [N] is the concrete navigator type (e.g. `AppNavigator`).
+/// Must be an ancestor of the `Router`: place it above `MaterialApp.router`, or
+/// wrap the `child` supplied to `MaterialApp.router.builder`. Both placements
+/// are visible to the delegate's `RouteNodePageBuilder` and page subtrees. [N]
+/// is the concrete navigator type (e.g. `AppNavigator`). Keep the [navigator]
+/// instance stable for this scope's lifetime.
 class NavigatorScope<N extends Object> extends InheritedWidget {
   /// Creates a scope exposing [navigator] above [child].
   const NavigatorScope({
@@ -18,8 +20,8 @@ class NavigatorScope<N extends Object> extends InheritedWidget {
   /// Reads the nearest [NavigatorScope] of type [N] without subscribing.
   static N of<N extends Object>(BuildContext context) => context
       .readScopeOrThrow<NavigatorScope<N>>(
-        'NavigatorScope<$N> not found. Place it ABOVE MaterialApp.router, '
-        'not inside its builder: (see spec C5).',
+        'NavigatorScope<$N> not found. Place it above MaterialApp.router or '
+        'around the router child supplied to MaterialApp.router.builder.',
       )
       .navigator;
 

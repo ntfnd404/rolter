@@ -14,9 +14,36 @@ final class SmokeRoute with KeyedRouteEquality {
   LocalKey get pageKey => const ValueKey<String>('home');
 
   @override
-  Page<Object?> buildPage(BuildContext context) => const MaterialPage(
-    key: ValueKey<String>('home'),
-    child: Scaffold(body: Center(child: Text('Rolter consumer smoke'))),
+  Map<String, String> toParams() => const {};
+
+  @override
+  RouteNode withChildren(List<RouteNode> children) => this;
+}
+
+Page<Object?> buildSmokePage(BuildContext context, SmokeRoute route) =>
+    MaterialPage<Object?>(
+      key: route.pageKey,
+      child: const Scaffold(
+        body: Center(child: Text('Rolter consumer smoke')),
+      ),
+    );
+
+final class OwnedSmokeRoute with KeyedRouteEquality implements PageRouteNode {
+  const OwnedSmokeRoute();
+
+  @override
+  List<RouteNode> get children => const [];
+
+  @override
+  String get name => 'owned';
+
+  @override
+  LocalKey get pageKey => const ValueKey<String>('owned');
+
+  @override
+  Page<Object?> buildPage(BuildContext context) => MaterialPage<Object?>(
+    key: pageKey,
+    child: const SizedBox(),
   );
 
   @override
@@ -25,6 +52,13 @@ final class SmokeRoute with KeyedRouteEquality {
   @override
   RouteNode withChildren(List<RouteNode> children) => this;
 }
+
+RoutingDelegate<OwnedSmokeRoute> createOwnedDelegate(
+  RoutesState<OwnedSmokeRoute> state,
+) => RoutingDelegate<OwnedSmokeRoute>(
+  state,
+  pageBuilder: buildPageFromRouteNode<OwnedSmokeRoute>,
+);
 
 NavigationQueue<SmokeRoute> createQueue(
   SnapshotProcessor<SmokeRoute> processor,
@@ -49,7 +83,10 @@ void main() {
     NavigatorScope<NavigationController<SmokeRoute>>(
       navigator: controller,
       child: MaterialApp.router(
-        routerDelegate: RoutingDelegate<SmokeRoute>(state),
+        routerDelegate: RoutingDelegate<SmokeRoute>(
+          state,
+          pageBuilder: buildSmokePage,
+        ),
         routeInformationParser: RoutingInformationParser<SmokeRoute>(
           TreeUrlCodec<SmokeRoute>(registry),
         ),

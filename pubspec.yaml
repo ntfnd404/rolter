@@ -1,6 +1,6 @@
 name: rolter
-description: "A declarative, tree-based router for Flutter focused on typed routes and nested navigation"
-version: 0.1.0
+description: "A typed, tree-based Flutter router with deep linking, nested navigation, guards, and external Page composition."
+version: 0.2.0
 
 homepage: https://github.com/ntfnd404/rolter
 repository: https://github.com/ntfnd404/rolter
@@ -36,7 +36,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 screenshots:
-  - description: Architecture of typed routes, codecs, guards, state, and nested navigators.
+  - description: Architecture of typed routes, guards, explicit page composition, and root and nested navigators.
     path: screenshots/architecture.webp
   - description: Opening a nested deep link and navigating back through nested and root stacks.
     path: screenshots/deep_link_nested_back.gif

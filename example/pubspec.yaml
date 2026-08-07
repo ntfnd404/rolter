@@ -1,13 +1,15 @@
 name: example
 description: "Example app for the rolter router: nested tabs, route guards, push-for-result, dialog-as-route, custom transitions, master-detail, and per-route scopes."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+1
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
   flutter: ">=3.32.0"
 
 dependencies:
+  cupertino_icons: ^1.0.8
+
   flutter:
     sdk: flutter
 
