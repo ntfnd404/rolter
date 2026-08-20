@@ -43,7 +43,9 @@ abstract interface class NavigationService<R extends RouteNode> {
   void mutateAt(List<String> path, R Function(R node) transform);
 
   /// Pushes [route] and completes when it is popped — with the value passed to
-  /// [popWith], or null if it leaves the tree without one (e.g. system back).
+  /// [popWith], or null if it leaves the tree without one (e.g. system back) or
+  /// the backing navigation state is torn down. An awaiter must check its own
+  /// lifecycle before performing follow-up navigation after a null result.
   Future<T?> pushForResult<T>(R route);
 
   /// Completes the active route's pending result with [result] and pops it.

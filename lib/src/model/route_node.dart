@@ -37,7 +37,8 @@ abstract interface class RouteNode {
 
   /// URL path segment and registry key (e.g. `home`). Written to and read from
   /// the URL **verbatim** (not percent-encoded), so it must be URL-path-safe —
-  /// a simple identifier such as an `enum.name` (no `/`, `.`, `~`, or spaces).
+  /// a public schema identifier such as an `enum.name` (no `/`, `.`, `~`, or
+  /// spaces), never an entity, account, tenant, or session identifier.
   String get name;
 
   /// Nested stack hosted by this node. Empty for a leaf.

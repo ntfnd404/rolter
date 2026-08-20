@@ -38,6 +38,9 @@ class NavTransition<R extends RouteNode> {
 /// **Must not mutate navigation** (no `push`/`pop`/etc.): it runs inside the
 /// commit step, so treat it as telemetry only — logging, analytics,
 /// breadcrumbs, a back-stack mirror. Use a guard, not an observer, to navigate.
+/// Transitions contain raw route objects and page keys, which may carry
+/// identity-bearing values. Send only an application-owned allowlisted
+/// projection to logs or analytics; the observer is a trusted callback.
 abstract interface class NavObserver<R extends RouteNode> {
   /// Called once per committed change. See the class doc for the no-mutation
   /// rule.

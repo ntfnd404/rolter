@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
@@ -71,6 +73,53 @@ class _StrictShell implements RouteNode, StrictHierarchy {
   bool allowsChild(RouteNode child) => child.name == 'ok';
 }
 
+final class _HostileKey extends LocalKey {
+  const _HostileKey(this.identity, this.onToString);
+
+  final String identity;
+  final VoidCallback onToString;
+
+  @override
+  int get hashCode => identity.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _HostileKey && other.identity == identity;
+
+  @override
+  String toString() {
+    onToString();
+    return 'secret:$identity';
+  }
+}
+
+@immutable
+final class _HostileKeyRoute implements RouteNode {
+  const _HostileKeyRoute(this.pageKey);
+
+  @override
+  final LocalKey pageKey;
+
+  @override
+  String get name => 'hostile-key';
+
+  @override
+  List<RouteNode> get children => const [];
+
+  @override
+  Map<String, String> toParams() => const {};
+
+  @override
+  RouteNode withChildren(List<RouteNode> children) => this;
+
+  @override
+  int get hashCode => pageKey.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _HostileKeyRoute && other.pageKey == pageKey;
+}
+
 void main() {
   group('KeyedRouteEquality', () {
     test('equal when runtimeType and pageKey match', () {
@@ -88,20 +137,16 @@ void main() {
   });
 
   group('RoutesState page-key contract', () {
-    RoutesState<RouteNode> state() => RoutesState<RouteNode>(
-      const [TestRoute('initial')],
-      (requested) => requested,
-    );
+    RoutesState<RouteNode> state() => RoutesState<RouteNode>(const [
+      TestRoute('initial'),
+    ], (requested) => requested);
 
     test('rejects an invalid initial tree synchronously', () {
       expect(
-        () => RoutesState<RouteNode>(
-          const [
-            TestRoute('a'),
-            TestRoute('b', children: [TestRoute('a')]),
-          ],
-          (requested) => requested,
-        ),
+        () => RoutesState<RouteNode>(const [
+          TestRoute('a'),
+          TestRoute('b', children: [TestRoute('a')]),
+        ], (requested) => requested),
         throwsStateError,
       );
     });
@@ -129,14 +174,81 @@ void main() {
       await routes.processingCompleted;
       expect(routes.root, const [TestRoute('recovered')]);
     });
+
+    test('initial duplicate diagnostic never stringifies the page key', () {
+      var toStringCalls = 0;
+      final first = _HostileKey('tenant-user-42', () => toStringCalls++);
+      final second = _HostileKey('tenant-user-42', () => toStringCalls++);
+      late StateError error;
+
+      try {
+        RoutesState<RouteNode>([
+          _HostileKeyRoute(first),
+          _HostileKeyRoute(second),
+        ], (requested) => requested);
+      } on StateError catch (caught) {
+        error = caught;
+      }
+
+      expect(error.message, contains('duplicate pageKey'));
+      expect(error.message, isNot(contains('tenant-user-42')));
+      expect(toStringCalls, 0);
+    });
+
+    test(
+      'queued duplicate diagnostic never stringifies the page key',
+      () async {
+        var toStringCalls = 0;
+        final first = _HostileKey('tenant-user-42', () => toStringCalls++);
+        final second = _HostileKey('tenant-user-42', () => toStringCalls++);
+        final routes = state();
+        addTearDown(routes.dispose);
+
+        routes.setRoot([_HostileKeyRoute(first), _HostileKeyRoute(second)]);
+        late StateError error;
+        try {
+          await routes.processingCompleted;
+        } on StateError catch (caught) {
+          error = caught;
+        }
+
+        expect(error.message, contains('duplicate pageKey'));
+        expect(error.message, isNot(contains('tenant-user-42')));
+        expect(toStringCalls, 0);
+      },
+    );
+
+    test('duplicate pending result never stringifies the page key', () async {
+      var toStringCalls = 0;
+      final first = _HostileKey('tenant-user-42', () => toStringCalls++);
+      final second = _HostileKey('tenant-user-42', () => toStringCalls++);
+      final routes = RoutesState<RouteNode>(const [
+        TestRoute('home'),
+      ], (requested) => requested);
+
+      final result = routes.pushForResult<int>(_HostileKeyRoute(first));
+      await routes.processingCompleted;
+      late AssertionError error;
+      try {
+        unawaited(routes.pushForResult<int>(_HostileKeyRoute(second)));
+      } on AssertionError catch (caught) {
+        error = caught;
+      }
+
+      expect('$error', contains('result is already pending'));
+      expect('$error', isNot(contains('tenant-user-42')));
+      expect(toStringCalls, 0);
+
+      routes.dispose();
+      expect(await result, isNull);
+    });
   });
 
   group('StrictHierarchy debug diagnostics', () {
     test('accepts an allowed direct child', () async {
-      final routes = RoutesState<RouteNode>(
-        const [TestRoute('initial')],
-        (requested) => requested,
-      );
+      final routes = RoutesState<RouteNode>(const [
+        TestRoute('initial'),
+      ], (requested) => requested);
       addTearDown(routes.dispose);
 
       routes.setRoot([
@@ -150,10 +262,9 @@ void main() {
     });
 
     test('reports a disallowed direct child with a debug assertion', () async {
-      final routes = RoutesState<RouteNode>(
-        const [TestRoute('initial')],
-        (requested) => requested,
-      );
+      final routes = RoutesState<RouteNode>(const [
+        TestRoute('initial'),
+      ], (requested) => requested);
       addTearDown(routes.dispose);
 
       routes.setRoot([

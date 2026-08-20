@@ -66,6 +66,11 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
     return navigator.maybePop();
   }
 
+  /// Enqueues [configuration] and accepts the framework request synchronously.
+  ///
+  /// The returned future does not represent asynchronous pipeline completion.
+  /// Application code that owns the backing state can observe the shared
+  /// route-state drain through [RoutesState.processingCompleted].
   @override
   Future<void> setNewRoutePath(List<R> configuration) {
     _state.setRoot(configuration);

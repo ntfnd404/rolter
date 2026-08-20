@@ -51,6 +51,8 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
   late final AppRoutePageCatalog _pages;
   late final RoutingDelegate<AppRoute> _delegate;
   late final RoutingInformationParser<AppRoute> _parser;
+  late final Listenable _routeRefresh;
+  late final VoidCallback _reevaluateRoutes;
   // Captures the entry URL's query (e.g. utm_*); values are never logged.
   final EntryQueryStore _entryQuery = EntryQueryStore();
 
@@ -69,7 +71,9 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
       pipeline.call,
       observers: [NavigationLogObserver()],
     );
-    pipeline.refresh.addListener(_state.reevaluate);
+    _routeRefresh = pipeline.refresh;
+    _reevaluateRoutes = _state.reevaluate;
+    _routeRefresh.addListener(_reevaluateRoutes);
     _navigator = AppNavigator(_state);
     _pages = buildAppPages(dependencies: _dependencies);
     _delegate = RoutingDelegate<AppRoute>(_state, pageBuilder: _pages.build);
@@ -86,6 +90,7 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
 
   @override
   void dispose() {
+    _routeRefresh.removeListener(_reevaluateRoutes);
     _delegate.dispose();
     _state.dispose();
     _lockGuard.dispose();

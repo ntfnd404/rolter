@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
@@ -63,6 +66,43 @@ final class _DependencyScope extends InheritedWidget {
       !identical(dependency, oldWidget.dependency);
 }
 
+Page<Object?> _buildPage(BuildContext context, _Route route) =>
+    MaterialPage<Object?>(key: route.pageKey, child: Text(route.name));
+
+final class _TestRouteInformationProvider extends RouteInformationProvider
+    with ChangeNotifier {
+  _TestRouteInformationProvider(String initialName)
+    : _value = RouteInformation(uri: Uri(path: '/$initialName'));
+
+  RouteInformation _value;
+
+  @override
+  RouteInformation get value => _value;
+
+  void go(String name) {
+    _value = RouteInformation(uri: Uri(path: '/$name'));
+    notifyListeners();
+  }
+}
+
+final class _TestRouteInformationParser
+    extends RouteInformationParser<List<_Route>> {
+  const _TestRouteInformationParser();
+
+  @override
+  Future<List<_Route>> parseRouteInformation(RouteInformation information) {
+    final segments = information.uri.pathSegments;
+
+    return SynchronousFuture<List<_Route>>([
+      _Route(segments.isEmpty ? 'home' : segments.last),
+    ]);
+  }
+
+  @override
+  RouteInformation restoreRouteInformation(List<_Route> configuration) =>
+      RouteInformation(uri: Uri(path: '/${configuration.single.name}'));
+}
+
 void main() {
   testWidgets('builds root pages in order from exact route instances', (
     tester,
@@ -70,10 +110,10 @@ void main() {
     const home = _Route('home');
     const detail = _Route('detail');
     final built = <_Route>[];
-    final state = RoutesState<_Route>(
-      const [home, detail],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      home,
+      detail,
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
@@ -88,9 +128,7 @@ void main() {
     );
     addTearDown(delegate.dispose);
 
-    await tester.pumpWidget(
-      MaterialApp.router(routerDelegate: delegate),
-    );
+    await tester.pumpWidget(MaterialApp.router(routerDelegate: delegate));
 
     expect(built, [same(home), same(detail)]);
     expect(find.text('detail'), findsOneWidget);
@@ -141,10 +179,9 @@ void main() {
     tester,
   ) async {
     const dependency = _Dependency();
-    final state = RoutesState<_Route>(
-      const [_Route('home')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('home'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
@@ -165,10 +202,9 @@ void main() {
     tester,
   ) async {
     const dependency = _Dependency();
-    final state = RoutesState<_Route>(
-      const [_Route('home')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('home'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
@@ -196,10 +232,9 @@ void main() {
     const first = _Dependency('first');
     const second = _Dependency('second');
     var builderCalls = 0;
-    final state = RoutesState<_Route>(
-      const [_Route('home')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('home'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
@@ -240,10 +275,9 @@ void main() {
   ) async {
     const dependency = _Dependency();
     late _Dependency builderDependency;
-    final state = RoutesState<_Route>(
-      const [_Route('home')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('home'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
@@ -262,10 +296,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp.router(
         routerDelegate: delegate,
-        builder: (context, child) => _DependencyScope(
-          dependency: dependency,
-          child: child!,
-        ),
+        builder: (context, child) =>
+            _DependencyScope(dependency: dependency, child: child!),
       ),
     );
 
@@ -277,10 +309,9 @@ void main() {
   testWidgets('accepts a distinct page key that compares equal', (
     tester,
   ) async {
-    final state = RoutesState<_Route>(
-      const [_Route('home')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('home'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
@@ -299,19 +330,16 @@ void main() {
   testWidgets('rejects a missing or mismatched page key without route data', (
     tester,
   ) async {
-    final state = RoutesState<_Route>(
-      const [_Route('private-id')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('private-id'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
 
     for (final key in <LocalKey?>[null, const ValueKey('wrong')]) {
       final delegate = RoutingDelegate<_Route>(
         state,
-        pageBuilder: (context, route) => MaterialPage<Object?>(
-          key: key,
-          child: const SizedBox(),
-        ),
+        pageBuilder: (context, route) =>
+            MaterialPage<Object?>(key: key, child: const SizedBox()),
       );
       addTearDown(delegate.dispose);
       late StateError error;
@@ -339,17 +367,14 @@ void main() {
   testWidgets('does not wrap builder exceptions', (tester) async {
     final expected = StateError('builder failure');
     final expectedStack = StackTrace.current;
-    final state = RoutesState<_Route>(
-      const [_Route('home')],
-      (requested) => requested,
-    );
+    final state = RoutesState<_Route>(const [
+      _Route('home'),
+    ], (requested) => requested);
     addTearDown(state.dispose);
     final delegate = RoutingDelegate<_Route>(
       state,
-      pageBuilder: (context, route) => Error.throwWithStackTrace(
-        expected,
-        expectedStack,
-      ),
+      pageBuilder: (context, route) =>
+          Error.throwWithStackTrace(expected, expectedStack),
     );
     addTearDown(delegate.dispose);
     late Object actual;
@@ -372,5 +397,186 @@ void main() {
 
     expect(actual, same(expected));
     expect(actualStack.toString(), expectedStack.toString());
+  });
+
+  group('Router Future contract', () {
+    test(
+      'new, initial, and restored paths accept before the drain settles',
+      () async {
+        for (final entry
+            in <
+                  String,
+                  Future<void> Function(RoutingDelegate<_Route>, List<_Route>)
+                >{
+                  'new': (delegate, routes) => delegate.setNewRoutePath(routes),
+                  'initial': (delegate, routes) =>
+                      delegate.setInitialRoutePath(routes),
+                  'restored': (delegate, routes) =>
+                      delegate.setRestoredRoutePath(routes),
+                }
+                .entries) {
+          final release = Completer<void>();
+          final started = Completer<void>();
+          final state = RoutesState<_Route>(const [_Route('home')], (
+            requested,
+          ) async {
+            started.complete();
+            await release.future;
+            return requested;
+          });
+          final delegate = RoutingDelegate<_Route>(
+            state,
+            pageBuilder: _buildPage,
+          );
+          addTearDown(state.dispose);
+          addTearDown(delegate.dispose);
+          var frameworkCompleted = false;
+          var drainCompleted = false;
+
+          final frameworkFuture = entry.value(
+            delegate,
+            const [_Route('detail')],
+          );
+          final drain = state.processingCompleted;
+          unawaited(
+            frameworkFuture.then((_) {
+              frameworkCompleted = true;
+            }),
+          );
+          unawaited(
+            drain.then((_) {
+              drainCompleted = true;
+            }),
+          );
+          await started.future;
+          await Future<void>.delayed(Duration.zero);
+
+          expect(frameworkCompleted, isTrue, reason: entry.key);
+          expect(drainCompleted, isFalse, reason: entry.key);
+          expect(state.root, const [_Route('home')], reason: entry.key);
+
+          release.complete();
+          await drain;
+
+          expect(drainCompleted, isTrue, reason: entry.key);
+          expect(state.root, const [_Route('detail')], reason: entry.key);
+        }
+      },
+    );
+
+    testWidgets(
+      'rapid Router provider updates stay ordered and settle on latest path',
+      (tester) async {
+        final releaseFirst = Completer<void>();
+        final firstStarted = Completer<void>();
+        final processed = <String>[];
+        final state = RoutesState<_Route>(const [_Route('home')], (
+          requested,
+        ) async {
+          final name = requested.single.name;
+          if (name != 'home') {
+            processed.add(name);
+          }
+          if (name == 'first') {
+            firstStarted.complete();
+            await releaseFirst.future;
+          }
+          return requested;
+        });
+        final delegate = RoutingDelegate<_Route>(
+          state,
+          pageBuilder: _buildPage,
+        );
+        final provider = _TestRouteInformationProvider('home');
+
+        await tester.pumpWidget(
+          MaterialApp.router(
+            routerDelegate: delegate,
+            routeInformationParser: const _TestRouteInformationParser(),
+            routeInformationProvider: provider,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        provider.go('first');
+        await tester.pump();
+        await firstStarted.future;
+        provider.go('second');
+        await tester.pump();
+
+        expect(processed, ['first']);
+
+        releaseFirst.complete();
+        await tester.pumpAndSettle();
+
+        // Flutter versions may reapply the newest provider value after an
+        // earlier asynchronous route update finishes. Every accepted request
+        // must still remain FIFO, and all work after `first` must target the
+        // latest value.
+        expect(processed.first, 'first');
+        expect(processed.skip(1), isNotEmpty);
+        expect(processed.skip(1), everyElement('second'));
+        expect(state.root, const [_Route('second')]);
+        expect(find.text('second'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        delegate.dispose();
+        state.dispose();
+        provider.dispose();
+      },
+    );
+
+    for (final lateFailure in <bool>[false, true]) {
+      testWidgets(
+        'Router unmount abandons pending framework '
+        '${lateFailure ? 'error' : 'success'}',
+        (tester) async {
+          final release = Completer<void>();
+          final started = Completer<void>();
+          final state = RoutesState<_Route>(const [_Route('home')], (
+            requested,
+          ) async {
+            if (requested.single.name == 'detail') {
+              started.complete();
+              await release.future;
+              if (lateFailure) {
+                throw StateError('late failure');
+              }
+            }
+            return requested;
+          });
+          final delegate = RoutingDelegate<_Route>(
+            state,
+            pageBuilder: _buildPage,
+          );
+          final provider = _TestRouteInformationProvider('home');
+
+          await tester.pumpWidget(
+            MaterialApp.router(
+              routerDelegate: delegate,
+              routeInformationParser: const _TestRouteInformationParser(),
+              routeInformationProvider: provider,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          provider.go('detail');
+          await tester.pump();
+          await started.future;
+          await tester.pumpWidget(const SizedBox.shrink());
+
+          delegate.dispose();
+          state.dispose();
+          release.complete();
+          await tester.pump();
+          await tester.pump();
+
+          expect(state.root, const [_Route('home')]);
+          expect(tester.takeException(), isNull);
+          provider.dispose();
+        },
+      );
+    }
   });
 }

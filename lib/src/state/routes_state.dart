@@ -10,7 +10,9 @@ import 'pending_results.dart';
 
 /// Transforms a requested stack into the committed stack — typically normalises
 /// it and folds it through guards. May be sync or async; the queue awaits it
-/// either way.
+/// either way. Framework integrations may submit an equivalent snapshot more
+/// than once, so treat each call as a state application rather than a unique
+/// user event; side effects must be idempotent or deduplicated externally.
 typedef ApplyPipeline<R extends RouteNode> =
     FutureOr<List<R>> Function(
       List<R> requested,
@@ -20,6 +22,9 @@ typedef ApplyPipeline<R extends RouteNode> =
 ///
 /// Every intent computes a full target snapshot and enqueues it; the queue
 /// commits via [ApplyPipeline] and notifies listeners only on a real change.
+/// Navigation mutations throw a [StateError] after [dispose]. An already-active
+/// pipeline is not cancelled, but its late result is abandoned without changing
+/// state or notifying callbacks.
 class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Creates a state with [initial] as the committed root, applying
   /// [_pipeline] to every subsequent change. [observers] receive a read-only
@@ -37,9 +42,11 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   late final List<NavObserver<R>> _observers;
   final PendingResults _results = PendingResults();
   late final NavigationQueue<R> _queue;
+  static const String _disposedMessage = 'RoutesState has been disposed.';
   List<R> _root;
   List<R>? _pending;
   int _pendingRequestCount = 0;
+  bool _disposed = false;
 
   /// Committed root stack (read-only view).
   List<R> get root => List<R>.unmodifiable(_root);
@@ -53,23 +60,32 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Whether this state is currently applying queued navigation requests.
   bool get isProcessing => _queue.isProcessing;
 
-  /// Completes when all navigation requests queued so far have been processed.
+  /// Completes when the current active navigation drain becomes idle.
   ///
   /// This lets integrations wait for asynchronous guards to settle without
-  /// exposing the internal navigation queue.
+  /// exposing the internal navigation queue. The returned future represents
+  /// the active drain, so it also includes requests added before that drain
+  /// becomes idle and may be shared by multiple callers.
   Future<void> get processingCompleted => _queue.processingCompleted;
 
   // Latest enqueued target (or committed root) so rapid relative ops compose.
   List<R> get _base => _pending ?? _root;
 
   /// Replaces the whole stack with [stack].
-  void setRoot(List<R> stack) => _enqueue(List<R>.of(stack));
+  void setRoot(List<R> stack) {
+    _ensureActive();
+    _enqueue(List<R>.of(stack));
+  }
 
   /// Pushes [route] onto the stack.
-  void push(R route) => _enqueue(<R>[..._base, route]);
+  void push(R route) {
+    _ensureActive();
+    _enqueue(<R>[..._base, route]);
+  }
 
   /// Pops the top of the stack, if more than one node remains.
   void pop() {
+    _ensureActive();
     final base = _base;
     if (base.length > 1) {
       _enqueue(base.sublist(0, base.length - 1));
@@ -78,45 +94,67 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
 
   /// Replaces the top of the stack with [route].
   void replaceTop(R route) {
+    _ensureActive();
     final base = _base;
     _enqueue(<R>[...base.sublist(0, base.length - 1), route]);
   }
 
   /// Replaces the whole stack with a single [route].
-  void clearAndPush(R route) => _enqueue(<R>[route]);
+  void clearAndPush(R route) {
+    _ensureActive();
+    _enqueue(<R>[route]);
+  }
 
   /// Pushes [route], or replaces the top if it has the same type.
-  void pushOrReplaceTop(R route) => _base.last.runtimeType == route.runtimeType
-      ? replaceTop(route)
-      : push(route);
+  void pushOrReplaceTop(R route) {
+    _ensureActive();
+    _base.last.runtimeType == route.runtimeType
+        ? replaceTop(route)
+        : push(route);
+  }
 
   /// Removes the node identified by [key] from the stack.
-  void removeByPageKey(LocalKey key) =>
-      _enqueue(tree.removeNodeByKey<R>(_base, key));
+  void removeByPageKey(LocalKey key) {
+    _ensureActive();
+    _enqueue(tree.removeNodeByKey<R>(_base, key));
+  }
 
   /// Replaces the node at [path] with the result of [transform].
-  void mutateAt(List<String> path, R Function(R node) transform) =>
-      _enqueue(tree.mutateNodeAt<R>(_base, path, transform));
+  void mutateAt(List<String> path, R Function(R node) transform) {
+    _ensureActive();
+    _enqueue(tree.mutateNodeAt<R>(_base, path, transform));
+  }
 
   /// Pops from the top until the top satisfies [test] (no-op if none match).
-  void popUntil(bool Function(R node) test) =>
-      _enqueue(tree.popUntil<R>(_base, test));
+  void popUntil(bool Function(R node) test) {
+    _ensureActive();
+    _enqueue(tree.popUntil<R>(_base, test));
+  }
 
   /// Removes every node in the stack that satisfies [test].
-  void removeWhere(bool Function(R node) test) =>
-      _enqueue(tree.removeWhere<R>(_base, test));
+  void removeWhere(bool Function(R node) test) {
+    _ensureActive();
+    _enqueue(tree.removeWhere<R>(_base, test));
+  }
 
   /// Resets the stack to the topmost node matching [test] (or clears it if none
   /// match), then pushes [route] on top.
-  void pushAndResetTo(R route, bool Function(R node) test) =>
-      _enqueue(tree.pushAndResetTo<R>(_base, route, test));
+  void pushAndResetTo(R route, bool Function(R node) test) {
+    _ensureActive();
+    _enqueue(tree.pushAndResetTo<R>(_base, route, test));
+  }
 
   /// Re-applies the current stack through the pipeline. Wire this to a
   /// `GuardedPipeline.refresh` so guards rerun when their state changes.
-  void reevaluate() => _enqueue(_base);
+  void reevaluate() {
+    _ensureActive();
+    _enqueue(_base);
+  }
 
   /// Pushes [route] and completes with the result passed to [popWith], or null
-  /// if the route leaves the tree without one (e.g. system back).
+  /// if the route leaves the tree without one (e.g. system back) or this state
+  /// is disposed. An awaiter must check its own lifecycle before performing
+  /// follow-up navigation after a `null` result.
   ///
   /// Results are keyed by [RouteNode.pageKey], so a result route must have a
   /// unique `pageKey` while it is on the stack (the same uniqueness the
@@ -125,6 +163,7 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// debug, and in release the prior awaiter is completed with `null` rather
   /// than leaked.
   Future<T?> pushForResult<T>(R route) {
+    _ensureActive();
     final future = _results.register<T>(route.pageKey);
     push(route);
 
@@ -133,17 +172,22 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
 
   /// Completes the top route's pending result with [result] and pops it.
   void popWith<T>(T result) {
+    _ensureActive();
     _results.complete(top.pageKey, result);
     pop();
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _pending = null;
+    _pendingRequestCount = 0;
     _results.dispose();
     super.dispose();
   }
 
   void _enqueue(List<R> target) {
+    _ensureActive();
     final snapshot = List<R>.unmodifiable(target);
     _pending = snapshot;
     _pendingRequestCount++;
@@ -151,9 +195,19 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   }
 
   Future<void> _commit(List<R> requested) async {
+    if (_disposed) {
+      return;
+    }
     try {
-      final next = List<R>.of(await _pipeline(requested));
+      final applied = await _pipeline(requested);
+      if (_disposed) {
+        return;
+      }
+      final next = List<R>.of(applied);
       _validateTree(next);
+      if (_disposed) {
+        return;
+      }
       assert(_pendingRequestCount > 0);
       _pendingRequestCount--;
       if (_pendingRequestCount == 0) {
@@ -161,14 +215,20 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
       }
       if (!listEquals(_root, next)) {
         final previous = _root;
-        _root = next;
         // Collect the new page keys once, shared by result-reconcile and the
         // observer diff (N is tiny, but avoid two identical walks).
         final nextKeys = (_results.isEmpty && _observers.isEmpty)
             ? const <LocalKey>{}
             : tree.collectPageKeys<R>(next);
+        if (_disposed) {
+          return;
+        }
+        _root = next;
         if (!_results.isEmpty) {
           _results.reconcileWith(nextKeys);
+        }
+        if (_disposed) {
+          return;
         }
         notifyListeners();
         if (_observers.isNotEmpty) {
@@ -181,9 +241,15 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
         // Notify so the delegate rebuilds its pages from `_root` and re-syncs
         // the Navigator, which would otherwise diverge from the source-of-truth
         // tree.
+        if (_disposed) {
+          return;
+        }
         notifyListeners();
       }
     } catch (_) {
+      if (_disposed) {
+        return;
+      }
       // NavigationQueue discards snapshots behind any failed commit. Reset the
       // speculative base for failures in the pipeline or later commit work, so
       // recovery always starts from the actual committed state.
@@ -224,8 +290,8 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
     final duplicatePageKey = tree.firstDuplicatePageKey<R>(roots);
     if (duplicatePageKey != null) {
       throw StateError(
-        'rolter: the committed stack has a duplicate pageKey '
-        '($duplicatePageKey). Every RouteNode.pageKey must be unique across '
+        'rolter: the committed stack has a duplicate pageKey. '
+        'Every RouteNode.pageKey must be unique across '
         'the whole tree — encode identity-bearing params into pageKey '
         '(see RouteNode.pageKey).',
       );
@@ -240,5 +306,11 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
 
       return true;
     }());
+  }
+
+  void _ensureActive() {
+    if (_disposed) {
+      throw StateError(_disposedMessage);
+    }
   }
 }

@@ -12,10 +12,9 @@ bool isUrlSafeRouteName(String name) => _urlSafeRouteName.hasMatch(name);
 /// Rejects a route [name] that is incompatible with Rolter's URL grammar.
 void validateRouteName(String name, {required String argumentName}) {
   if (!isUrlSafeRouteName(name)) {
-    throw ArgumentError.value(
-      name,
-      argumentName,
+    throw ArgumentError(
       'must match [A-Za-z0-9_-]+; "/", ".", "~", and spaces are invalid',
+      argumentName,
     );
   }
 }
