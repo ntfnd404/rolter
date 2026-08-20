@@ -12,6 +12,8 @@ import 'route_guard.dart';
 /// cancel — keeps the current stack. Subscribe [refresh] to
 /// `RoutesState.reevaluate` so a guard's `Listenable` change reruns the guards
 /// against the current location (e.g. auth state changed → re-protect/restore).
+/// The context is transient coordination state for one pipeline call, not route
+/// metadata or a telemetry payload.
 ///
 /// A guard may rewrite the stack (a redirect), so the fold is repeated until
 /// the stack **settles** (a pass leaves it unchanged), bounded by

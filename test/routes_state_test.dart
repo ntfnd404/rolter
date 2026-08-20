@@ -28,6 +28,15 @@ class _ThrowingOnceObserver implements NavObserver<TestRoute> {
   }
 }
 
+StateError _captureStateError(VoidCallback action) {
+  try {
+    action();
+  } on StateError catch (error) {
+    return error;
+  }
+  fail('Expected a StateError.');
+}
+
 void main() {
   // Identity pipeline — no normalisation, no guards.
   RoutesState<TestRoute> stateWith(List<TestRoute> initial) =>
@@ -36,13 +45,12 @@ void main() {
   group('RoutesState mutations', () {
     test('reports processing without exposing its mutable queue', () async {
       final release = Completer<void>();
-      final state = RoutesState<TestRoute>(
-        const [TestRoute('a')],
-        (requested) async {
-          await release.future;
-          return requested;
-        },
-      );
+      final state = RoutesState<TestRoute>(const [TestRoute('a')], (
+        requested,
+      ) async {
+        await release.future;
+        return requested;
+      });
       addTearDown(state.dispose);
 
       state.push(const TestRoute('b'));
@@ -55,15 +63,14 @@ void main() {
 
     test('recovers from pipeline failure using committed state', () async {
       var shouldFail = true;
-      final state = RoutesState<TestRoute>(
-        const [TestRoute('committed')],
-        (requested) {
-          if (shouldFail) {
-            throw StateError('policy failed');
-          }
-          return requested;
-        },
-      );
+      final state = RoutesState<TestRoute>(const [TestRoute('committed')], (
+        requested,
+      ) {
+        if (shouldFail) {
+          throw StateError('policy failed');
+        }
+        return requested;
+      });
       addTearDown(state.dispose);
 
       state.push(const TestRoute('rejected'));
@@ -74,10 +81,7 @@ void main() {
       shouldFail = false;
       state.push(const TestRoute('recovered'));
       await state.processingCompleted;
-      expect(state.root.map((route) => route.name), [
-        'committed',
-        'recovered',
-      ]);
+      expect(state.root.map((route) => route.name), ['committed', 'recovered']);
     });
 
     test(
@@ -85,18 +89,17 @@ void main() {
       () async {
         final releaseFirst = Completer<void>();
         var pipelineCalls = 0;
-        final state = RoutesState<TestRoute>(
-          const [TestRoute('committed')],
-          (requested) async {
-            pipelineCalls++;
-            if (pipelineCalls == 1) {
-              await releaseFirst.future;
-              return const [TestRoute('redirected')];
-            }
+        final state = RoutesState<TestRoute>(const [TestRoute('committed')], (
+          requested,
+        ) async {
+          pipelineCalls++;
+          if (pipelineCalls == 1) {
+            await releaseFirst.future;
+            return const [TestRoute('redirected')];
+          }
 
-            return requested;
-          },
-        );
+          return requested;
+        });
         addTearDown(state.dispose);
         var appended = false;
         state.addListener(() {
@@ -196,6 +199,190 @@ void main() {
       await state.processingCompleted;
 
       expect(state.root.first.children.map((c) => c.name), ['a', 'b']);
+    });
+  });
+
+  group('RoutesState lifecycle', () {
+    test('rejects every mutation before callbacks or result side effects', () {
+      final state = stateWith([
+        const TestRoute('root', children: [TestRoute('child')]),
+      ]);
+      var transformCalls = 0;
+      var predicateCalls = 0;
+
+      state.dispose();
+
+      final errors = <StateError>[
+        _captureStateError(
+          () => state.setRoot(const [TestRoute('replacement')]),
+        ),
+        _captureStateError(() => state.push(const TestRoute('pushed'))),
+        _captureStateError(state.pop),
+        _captureStateError(
+          () => state.replaceTop(const TestRoute('replacement')),
+        ),
+        _captureStateError(
+          () => state.clearAndPush(const TestRoute('replacement')),
+        ),
+        _captureStateError(
+          () => state.pushOrReplaceTop(const TestRoute('replacement')),
+        ),
+        _captureStateError(
+          () => state.removeByPageKey(const ValueKey('child')),
+        ),
+        _captureStateError(
+          () => state.mutateAt(['root'], (route) {
+            transformCalls++;
+            return route;
+          }),
+        ),
+        _captureStateError(
+          () => state.popUntil((route) {
+            predicateCalls++;
+            return true;
+          }),
+        ),
+        _captureStateError(
+          () => state.removeWhere((route) {
+            predicateCalls++;
+            return true;
+          }),
+        ),
+        _captureStateError(
+          () => state.pushAndResetTo(const TestRoute('replacement'), (route) {
+            predicateCalls++;
+            return true;
+          }),
+        ),
+        _captureStateError(state.reevaluate),
+        _captureStateError(
+          () => state.pushForResult<int>(const TestRoute('result')),
+        ),
+        _captureStateError(() => state.popWith<int>(42)),
+      ];
+
+      expect(errors, everyElement(isA<StateError>()));
+      expect(errors.map((error) => error.message).toSet(), {
+        'RoutesState has been disposed.',
+      });
+      expect(identical(errors[0], errors[1]), isFalse);
+      expect(transformCalls, 0);
+      expect(predicateCalls, 0);
+      expect(state.root, [
+        const TestRoute('root', children: [TestRoute('child')]),
+      ]);
+    });
+
+    test(
+      'dispose abandons active and queued success without notifications',
+      () async {
+        final release = Completer<void>();
+        final started = Completer<void>();
+        var pipelineCalls = 0;
+        var notifications = 0;
+        final observer = _CapturingObserver();
+        final state = RoutesState<TestRoute>(const [TestRoute('committed')], (
+          requested,
+        ) async {
+          pipelineCalls++;
+          if (pipelineCalls == 1) {
+            started.complete();
+            await release.future;
+          }
+          return requested;
+        }, observers: [observer]);
+        state.addListener(() => notifications++);
+
+        state.setRoot(const [TestRoute('active')]);
+        state.setRoot(const [TestRoute('queued')]);
+        final drain = state.processingCompleted;
+        await started.future;
+
+        state.dispose();
+        release.complete();
+        await drain;
+
+        expect(pipelineCalls, 1);
+        expect(state.root, const [TestRoute('committed')]);
+        expect(notifications, 0);
+        expect(observer.transitions, isEmpty);
+      },
+    );
+
+    test(
+      'dispose suppresses an active late error and settles the drain',
+      () async {
+        final release = Completer<void>();
+        final started = Completer<void>();
+        final expected = StateError('late policy failure');
+        final expectedStack = StackTrace.current;
+        final state = RoutesState<TestRoute>(const [TestRoute('committed')], (
+          requested,
+        ) async {
+          started.complete();
+          await release.future;
+          Error.throwWithStackTrace(expected, expectedStack);
+        });
+
+        state.setRoot(const [TestRoute('rejected')]);
+        final drain = state.processingCompleted;
+        await started.future;
+
+        state.dispose();
+        release.complete();
+        await drain;
+
+        expect(state.root, const [TestRoute('committed')]);
+      },
+    );
+
+    test(
+      'live failure preserves error identity and stack before recovery',
+      () async {
+        final expected = StateError('policy failed');
+        final expectedStack = StackTrace.current;
+        var shouldFail = true;
+        final state = RoutesState<TestRoute>(const [TestRoute('committed')], (
+          requested,
+        ) {
+          if (shouldFail) {
+            Error.throwWithStackTrace(expected, expectedStack);
+          }
+          return requested;
+        });
+        addTearDown(state.dispose);
+
+        state.setRoot(const [TestRoute('rejected')]);
+        state.setRoot(const [TestRoute('dependent')]);
+        late Object actual;
+        late StackTrace actualStack;
+        try {
+          await state.processingCompleted;
+        } on Object catch (error, stack) {
+          actual = error;
+          actualStack = stack;
+        }
+
+        expect(actual, same(expected));
+        expect(actualStack.toString(), expectedStack.toString());
+        expect(state.root, const [TestRoute('committed')]);
+
+        shouldFail = false;
+        state.setRoot(const [TestRoute('recovered')]);
+        await state.processingCompleted;
+        expect(state.root, const [TestRoute('recovered')]);
+      },
+    );
+
+    test('borrowed controller inherits disposed-state rejection', () {
+      final state = stateWith([const TestRoute('root')]);
+      final controller = NavigationController<TestRoute>(state);
+      state.dispose();
+
+      expect(
+        () => controller.push(const TestRoute('late')),
+        throwsA(isA<StateError>()),
+      );
     });
   });
 
@@ -409,6 +596,28 @@ void main() {
       state.dispose();
 
       expect(await result, isNull);
+    });
+
+    test('dispose completes an uncommitted pending result with null', () async {
+      final release = Completer<void>();
+      final started = Completer<void>();
+      final state = RoutesState<TestRoute>(const [TestRoute('home')], (
+        requested,
+      ) async {
+        started.complete();
+        await release.future;
+        return requested;
+      });
+
+      final result = state.pushForResult<int>(const TestRoute('picker'));
+      final drain = state.processingCompleted;
+      await started.future;
+      state.dispose();
+      release.complete();
+
+      expect(await result, isNull);
+      await drain;
+      expect(state.root, const [TestRoute('home')]);
     });
 
     test(

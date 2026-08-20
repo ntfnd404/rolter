@@ -172,10 +172,17 @@ void main() {
 
   group('TreeUrlCodec route-name safety', () {
     test('a URL-unsafe name is rejected in every build mode', () {
-      expect(
-        () => codec.encode([const _Node('bad name')]),
-        throwsArgumentError,
-      );
+      const secret = 'account/tenant-42';
+      late ArgumentError error;
+
+      try {
+        codec.encode([const _Node(secret)]);
+      } on ArgumentError catch (caught) {
+        error = caught;
+      }
+
+      expect('$error', contains('RouteNode.name'));
+      expect('$error', isNot(contains(secret)));
     });
 
     test('a safe name encodes fine', () {

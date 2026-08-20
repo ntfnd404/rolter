@@ -14,6 +14,10 @@ export 'nav_decision.dart';
 /// sharing a [context] map, and reruns them when any guard's [Listenable]
 /// fires. The contract is typed over `List<R>`, carries the prior [history],
 /// and has an explicit cancel.
+///
+/// An asynchronous implementation must remain safe if its owner begins
+/// teardown while [call] is awaiting. Bounding its duration does not replace
+/// late-safe handling of its own dependencies.
 abstract interface class RouteGuard<R extends RouteNode> implements Listenable {
   /// Inspects [requested] (with the prior [history] and shared [context]) and
   /// returns a result: proceed with a possibly rewritten stack, or cancel.

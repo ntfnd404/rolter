@@ -48,7 +48,8 @@ class NavigationQueue<R extends RouteNode> {
   /// Whether the queue is currently draining.
   bool get isProcessing => _running != null;
 
-  /// Completes when the active drain becomes idle.
+  /// Completes when the active drain becomes idle. Snapshots added before that
+  /// happens join the same drain and are included in the returned Future.
   ///
   /// The future completes with the processor's error when a snapshot fails.
   /// It is already complete when the queue is idle.

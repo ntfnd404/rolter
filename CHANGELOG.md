@@ -1,3 +1,22 @@
+## 0.2.1
+
+### Fixed
+
+- `RoutesState.dispose()` now abandons active and buffered navigation work
+  without a late commit, notification, observer call, or pipeline error.
+  Navigation mutations after disposal throw a generic `StateError` before
+  invoking application callbacks or changing pending results.
+- `RoutingDelegate.setNewRoutePath()` now returns the active queue-drain Future,
+  so Flutter waits for asynchronous guards and observes live pipeline errors.
+- Duplicate page-key diagnostics no longer stringify or expose the raw key.
+
+### Changed
+
+- The feature-first example now removes its exact guard-refresh callback before
+  disposing the delegate and route state.
+- Lifecycle, drain-level Future, callback ownership, and trusted telemetry
+  guidance are documented. Public APIs and the URL format are unchanged.
+
 ## 0.2.0
 
 ### Breaking changes

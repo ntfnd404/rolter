@@ -41,7 +41,7 @@ Add `rolter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  rolter: ^0.2.0
+  rolter: ^0.2.1
 ```
 
 ## Usage
@@ -223,6 +223,38 @@ debounce or rate-limit that event source before adding snapshots.
 `RoutesState` deliberately does not expose its mutable internal queue. Use its
 navigation methods and the read-only `isProcessing` and `processingCompleted`
 properties so every request passes through the configured `ApplyPipeline`.
+`processingCompleted` represents the whole active drain: requests added before
+the queue becomes idle share it, and a failure discards work buffered behind
+the failed snapshot. `RoutingDelegate` returns that Future for new, initial,
+and restored route paths, so Flutter waits for asynchronous guards.
+
+## Router lifecycle
+
+The owner must stop external navigation producers and detach app-owned
+listeners before disposing the delegate and route state:
+
+```dart
+final routeRefresh = pipeline.refresh;
+final reevaluateRoutes = state.reevaluate;
+routeRefresh.addListener(reevaluateRoutes);
+
+// During owner teardown:
+routeRefresh.removeListener(reevaluateRoutes);
+delegate.dispose();
+state.dispose();
+history.dispose(); // when the application owns NavigationHistory
+```
+
+Every navigation mutation throws `StateError` after `RoutesState.dispose()`.
+An active pipeline cannot be cancelled generically, but its late success or
+error is abandoned without changing the route tree or notifying callbacks;
+buffered snapshots do not start their pipelines. Capture `processingCompleted`
+before disposal if teardown diagnostics need to observe the remaining drain.
+
+An asynchronous guard must remain safe if its dependencies are disposed before
+its Future settles. A timeout can bound the drain, but does not provide that
+late-safety guarantee. A `pushForResult` awaiter receives `null` on teardown;
+check the awaiting UI/owner lifecycle before starting follow-up navigation.
 
 A custom `SnapshotProcessor` is trusted application code and can choose not to
 run route guards. Neither it nor `RouteGuard` is a security boundary: modified
@@ -237,8 +269,10 @@ every identity-bearing param and be **unique across the whole tree**. The engine
 detects changes with `listEquals` and keys pages by `pageKey`, so a param left
 out of both is invisible (the navigation is silently a no-op) and a shared
 `pageKey` would collapse two pages into one. `RoutesState` therefore rejects a
-duplicate key before commit. For a leaf, put the params in the key and mix in
-`KeyedRouteEquality`:
+duplicate key before commit. Rolter diagnostics do not stringify duplicate
+keys, but `NavObserver` intentionally receives raw routes and keys and must be
+treated as trusted application code. Log only an allowlisted projection. For a
+leaf, put the params in the key and mix in `KeyedRouteEquality`:
 
 ```dart
 final class ItemRoute with KeyedRouteEquality implements RouteNode {
@@ -265,6 +299,8 @@ final class ItemRoute with KeyedRouteEquality implements RouteNode {
 
 A shell/tab node distinguished by its `children` or by a param not in `pageKey`
 (e.g. the active tab) must override `==`/`hashCode` to compare that state.
+`RouteNode.name` is a public URL-schema token such as an enum name; do not use
+an entity, account, tenant, or session identifier as the route name.
 
 **Serializable vs runtime params.** Typed route fields carry both kinds, so
 there is no separate `arguments`/`extra` split: `toParams()` is the URL wire

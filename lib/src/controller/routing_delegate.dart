@@ -66,11 +66,13 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
     return navigator.maybePop();
   }
 
+  /// Enqueues [configuration] and completes when the active route-state drain
+  /// becomes idle. Calls made during one drain may share the same Future.
   @override
   Future<void> setNewRoutePath(List<R> configuration) {
     _state.setRoot(configuration);
 
-    return SynchronousFuture<void>(null);
+    return _state.processingCompleted;
   }
 
   @override

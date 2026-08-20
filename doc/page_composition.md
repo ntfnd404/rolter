@@ -557,6 +557,13 @@ These mechanisms solve different ownership problems:
 - `RouteScope` owns a page/widget-lifetime resource;
 - constructor-captured dependencies are read without a context lookup.
 
+The composition root also owns router teardown. Stop external navigation
+producers, remove app-owned listeners (including the exact callback registered
+with `GuardedPipeline.refresh`), dispose `RoutingDelegate`, and then dispose
+`RoutesState`. Dispose app-owned history, guards, and services afterwards in an
+order that is safe for any already-running asynchronous guard. A bounded guard
+is not automatically late-safe for dependencies disposed while it is awaiting.
+
 Flutter placement semantics are important and test-covered:
 
 - a scope above `MaterialApp.router` is visible to the delegate Page builder

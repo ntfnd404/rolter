@@ -26,8 +26,8 @@ class PendingResults {
     final existing = _byKey[key];
     assert(
       existing == null,
-      'pushForResult: a result is already pending for pageKey "$key". Result '
-      'routes must have a unique pageKey while on the stack (see '
+      'pushForResult: a result is already pending for this pageKey. Result '
+      'routes must use a unique pageKey while on the stack (see '
       'RouteNode.pageKey).',
     );
     if (existing != null && !existing.isCompleted) {
