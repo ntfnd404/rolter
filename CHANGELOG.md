@@ -8,7 +8,8 @@
   invoking application callbacks or changing pending results.
 - `RoutingDelegate.setNewRoutePath()` now returns the active queue-drain Future,
   so Flutter waits for asynchronous guards and observes live pipeline errors.
-- Duplicate page-key diagnostics no longer stringify or expose the raw key.
+- Rolter-owned validation diagnostics no longer expose raw duplicate page keys
+  or invalid route-name values.
 
 ### Changed
 

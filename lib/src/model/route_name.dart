@@ -13,8 +13,8 @@ bool isUrlSafeRouteName(String name) => _urlSafeRouteName.hasMatch(name);
 void validateRouteName(String name, {required String argumentName}) {
   if (!isUrlSafeRouteName(name)) {
     throw ArgumentError(
-      '$argumentName must match [A-Za-z0-9_-]+; '
-      '"/", ".", "~", and spaces are invalid',
+      'must match [A-Za-z0-9_-]+; "/", ".", "~", and spaces are invalid',
+      argumentName,
     );
   }
 }

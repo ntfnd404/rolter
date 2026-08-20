@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
@@ -67,6 +68,40 @@ final class _DependencyScope extends InheritedWidget {
 
 Page<Object?> _buildPage(BuildContext context, _Route route) =>
     MaterialPage<Object?>(key: route.pageKey, child: Text(route.name));
+
+final class _TestRouteInformationProvider extends RouteInformationProvider
+    with ChangeNotifier {
+  _TestRouteInformationProvider(String initialName)
+    : _value = RouteInformation(uri: Uri(path: '/$initialName'));
+
+  RouteInformation _value;
+
+  @override
+  RouteInformation get value => _value;
+
+  void go(String name) {
+    _value = RouteInformation(uri: Uri(path: '/$name'));
+    notifyListeners();
+  }
+}
+
+final class _TestRouteInformationParser
+    extends RouteInformationParser<List<_Route>> {
+  const _TestRouteInformationParser();
+
+  @override
+  Future<List<_Route>> parseRouteInformation(RouteInformation information) {
+    final segments = information.uri.pathSegments;
+
+    return SynchronousFuture<List<_Route>>([
+      _Route(segments.isEmpty ? 'home' : segments.last),
+    ]);
+  }
+
+  @override
+  RouteInformation restoreRouteInformation(List<_Route> configuration) =>
+      RouteInformation(uri: Uri(path: '/${configuration.single.name}'));
+}
 
 void main() {
   testWidgets('builds root pages in order from exact route instances', (
@@ -447,6 +482,63 @@ void main() {
       expect(state.root, const [_Route('second')]);
     });
 
+    testWidgets(
+      'rapid Router provider updates share a drain and settle on latest path',
+      (tester) async {
+        final releaseFirst = Completer<void>();
+        final firstStarted = Completer<void>();
+        final processed = <String>[];
+        final state = RoutesState<_Route>(const [_Route('home')], (
+          requested,
+        ) async {
+          final name = requested.single.name;
+          if (name != 'home') {
+            processed.add(name);
+          }
+          if (name == 'first') {
+            firstStarted.complete();
+            await releaseFirst.future;
+          }
+          return requested;
+        });
+        final delegate = RoutingDelegate<_Route>(
+          state,
+          pageBuilder: _buildPage,
+        );
+        final provider = _TestRouteInformationProvider('home');
+
+        await tester.pumpWidget(
+          MaterialApp.router(
+            routerDelegate: delegate,
+            routeInformationParser: const _TestRouteInformationParser(),
+            routeInformationProvider: provider,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        provider.go('first');
+        await tester.pump();
+        await firstStarted.future;
+        provider.go('second');
+        await tester.pump();
+
+        expect(processed, ['first']);
+
+        releaseFirst.complete();
+        await tester.pumpAndSettle();
+
+        expect(processed, ['first', 'second']);
+        expect(state.root, const [_Route('second')]);
+        expect(find.text('second'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        delegate.dispose();
+        state.dispose();
+        provider.dispose();
+      },
+    );
+
     test('propagates live failure identity and stack, then recovers', () async {
       final release = Completer<void>();
       final started = Completer<void>();
@@ -493,17 +585,20 @@ void main() {
 
     for (final lateFailure in <bool>[false, true]) {
       testWidgets(
-        'Router unmount abandons pending ${lateFailure ? 'error' : 'success'}',
+        'Router unmount abandons pending framework '
+        '${lateFailure ? 'error' : 'success'}',
         (tester) async {
           final release = Completer<void>();
           final started = Completer<void>();
           final state = RoutesState<_Route>(const [_Route('home')], (
             requested,
           ) async {
-            started.complete();
-            await release.future;
-            if (lateFailure) {
-              throw StateError('late failure');
+            if (requested.single.name == 'detail') {
+              started.complete();
+              await release.future;
+              if (lateFailure) {
+                throw StateError('late failure');
+              }
             }
             return requested;
           });
@@ -511,20 +606,31 @@ void main() {
             state,
             pageBuilder: _buildPage,
           );
+          final provider = _TestRouteInformationProvider('home');
 
-          await tester.pumpWidget(MaterialApp.router(routerDelegate: delegate));
-          final future = delegate.setNewRoutePath(const [_Route('detail')]);
+          await tester.pumpWidget(
+            MaterialApp.router(
+              routerDelegate: delegate,
+              routeInformationParser: const _TestRouteInformationParser(),
+              routeInformationProvider: provider,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          provider.go('detail');
+          await tester.pump();
           await started.future;
           await tester.pumpWidget(const SizedBox.shrink());
 
           delegate.dispose();
           state.dispose();
           release.complete();
-          await future;
+          await tester.pump();
           await tester.pump();
 
           expect(state.root, const [_Route('home')]);
           expect(tester.takeException(), isNull);
+          provider.dispose();
         },
       );
     }

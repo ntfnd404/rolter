@@ -181,6 +181,8 @@ void main() {
         error = caught;
       }
 
+      expect(error.name, 'RouteNode.name');
+      expect(error.invalidValue, isNull);
       expect('$error', contains('RouteNode.name'));
       expect('$error', isNot(contains(secret)));
     });
