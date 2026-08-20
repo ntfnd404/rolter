@@ -10,7 +10,9 @@ import 'pending_results.dart';
 
 /// Transforms a requested stack into the committed stack — typically normalises
 /// it and folds it through guards. May be sync or async; the queue awaits it
-/// either way.
+/// either way. Framework integrations may submit an equivalent snapshot more
+/// than once, so treat each call as a state application rather than a unique
+/// user event; side effects must be idempotent or deduplicated externally.
 typedef ApplyPipeline<R extends RouteNode> =
     FutureOr<List<R>> Function(
       List<R> requested,
@@ -58,7 +60,7 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Whether this state is currently applying queued navigation requests.
   bool get isProcessing => _queue.isProcessing;
 
-  /// Completes when all navigation requests queued so far have been processed.
+  /// Completes when the current active navigation drain becomes idle.
   ///
   /// This lets integrations wait for asynchronous guards to settle without
   /// exposing the internal navigation queue. The returned future represents
