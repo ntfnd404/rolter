@@ -225,8 +225,13 @@ navigation methods and the read-only `isProcessing` and `processingCompleted`
 properties so every request passes through the configured `ApplyPipeline`.
 `processingCompleted` represents the whole active drain: requests added before
 the queue becomes idle share it, and a failure discards work buffered behind
-the failed snapshot. `RoutingDelegate` returns that Future for new, initial,
-and restored route paths, so Flutter waits for asynchronous guards.
+the failed snapshot.
+
+In `0.2.1`, `RoutingDelegate` accepts new, initial, and restored framework route
+paths synchronously and enqueues their actual application through the same
+state queue. Its returned Future does not represent pipeline completion or
+surface pipeline errors. Application code that owns the `RoutesState` can await
+`processingCompleted`; request-scoped Flutter completion is planned separately.
 
 ## Router lifecycle
 

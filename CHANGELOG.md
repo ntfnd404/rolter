@@ -6,8 +6,6 @@
   without a late commit, notification, observer call, or pipeline error.
   Navigation mutations after disposal throw a generic `StateError` before
   invoking application callbacks or changing pending results.
-- `RoutingDelegate.setNewRoutePath()` now returns the active queue-drain Future,
-  so Flutter waits for asynchronous guards and observes live pipeline errors.
 - Rolter-owned validation diagnostics no longer expose raw duplicate page keys
   or invalid route-name values.
 

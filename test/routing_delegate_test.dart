@@ -400,87 +400,69 @@ void main() {
   });
 
   group('Router Future contract', () {
-    test('new, initial, and restored paths wait for their pipeline', () async {
-      for (final entry
-          in <
-                String,
-                Future<void> Function(RoutingDelegate<_Route>, List<_Route>)
-              >{
-                'new': (delegate, routes) => delegate.setNewRoutePath(routes),
-                'initial': (delegate, routes) =>
-                    delegate.setInitialRoutePath(routes),
-                'restored': (delegate, routes) =>
-                    delegate.setRestoredRoutePath(routes),
-              }
-              .entries) {
-        final release = Completer<void>();
-        final started = Completer<void>();
-        final state = RoutesState<_Route>(const [_Route('home')], (
-          requested,
-        ) async {
-          started.complete();
-          await release.future;
-          return requested;
-        });
-        final delegate = RoutingDelegate<_Route>(
-          state,
-          pageBuilder: _buildPage,
-        );
-        var completed = false;
+    test(
+      'new, initial, and restored paths accept before the drain settles',
+      () async {
+        for (final entry
+            in <
+                  String,
+                  Future<void> Function(RoutingDelegate<_Route>, List<_Route>)
+                >{
+                  'new': (delegate, routes) => delegate.setNewRoutePath(routes),
+                  'initial': (delegate, routes) =>
+                      delegate.setInitialRoutePath(routes),
+                  'restored': (delegate, routes) =>
+                      delegate.setRestoredRoutePath(routes),
+                }
+                .entries) {
+          final release = Completer<void>();
+          final started = Completer<void>();
+          final state = RoutesState<_Route>(const [_Route('home')], (
+            requested,
+          ) async {
+            started.complete();
+            await release.future;
+            return requested;
+          });
+          final delegate = RoutingDelegate<_Route>(
+            state,
+            pageBuilder: _buildPage,
+          );
+          addTearDown(state.dispose);
+          addTearDown(delegate.dispose);
+          var frameworkCompleted = false;
+          var drainCompleted = false;
 
-        final future = entry.value(delegate, const [_Route('detail')]);
-        unawaited(
-          future.then((_) {
-            completed = true;
-          }),
-        );
-        await started.future;
-        await Future<void>.delayed(Duration.zero);
+          final frameworkFuture = entry.value(
+            delegate,
+            const [_Route('detail')],
+          );
+          final drain = state.processingCompleted;
+          unawaited(
+            frameworkFuture.then((_) {
+              frameworkCompleted = true;
+            }),
+          );
+          unawaited(
+            drain.then((_) {
+              drainCompleted = true;
+            }),
+          );
+          await started.future;
+          await Future<void>.delayed(Duration.zero);
 
-        expect(completed, isFalse, reason: entry.key);
-        expect(state.root, const [_Route('home')], reason: entry.key);
+          expect(frameworkCompleted, isTrue, reason: entry.key);
+          expect(drainCompleted, isFalse, reason: entry.key);
+          expect(state.root, const [_Route('home')], reason: entry.key);
 
-        release.complete();
-        await future;
+          release.complete();
+          await drain;
 
-        expect(completed, isTrue, reason: entry.key);
-        expect(state.root, const [_Route('detail')], reason: entry.key);
-        delegate.dispose();
-        state.dispose();
-      }
-    });
-
-    test('multiple calls share one FIFO drain', () async {
-      final releaseFirst = Completer<void>();
-      final firstStarted = Completer<void>();
-      final processed = <String>[];
-      final state = RoutesState<_Route>(const [_Route('home')], (
-        requested,
-      ) async {
-        processed.add(requested.single.name);
-        if (processed.length == 1) {
-          firstStarted.complete();
-          await releaseFirst.future;
+          expect(drainCompleted, isTrue, reason: entry.key);
+          expect(state.root, const [_Route('detail')], reason: entry.key);
         }
-        return requested;
-      });
-      addTearDown(state.dispose);
-      final delegate = RoutingDelegate<_Route>(state, pageBuilder: _buildPage);
-      addTearDown(delegate.dispose);
-
-      final first = delegate.setNewRoutePath(const [_Route('first')]);
-      final second = delegate.setNewRoutePath(const [_Route('second')]);
-
-      expect(identical(first, second), isTrue);
-      await firstStarted.future;
-      expect(processed, ['first']);
-
-      releaseFirst.complete();
-      await Future.wait([first, second]);
-
-      expect(processed, ['first', 'second']);
-      expect(state.root, const [_Route('second')]);
-    });
+      },
+    );
 
     testWidgets(
       'rapid Router provider updates stay ordered and settle on latest path',
@@ -544,50 +526,6 @@ void main() {
         provider.dispose();
       },
     );
-
-    test('propagates live failure identity and stack, then recovers', () async {
-      final release = Completer<void>();
-      final started = Completer<void>();
-      final expected = StateError('route policy failed');
-      final expectedStack = StackTrace.current;
-      var shouldFail = true;
-      final state = RoutesState<_Route>(const [_Route('home')], (
-        requested,
-      ) async {
-        if (shouldFail) {
-          started.complete();
-          await release.future;
-          Error.throwWithStackTrace(expected, expectedStack);
-        }
-        return requested;
-      });
-      addTearDown(state.dispose);
-      final delegate = RoutingDelegate<_Route>(state, pageBuilder: _buildPage);
-      addTearDown(delegate.dispose);
-
-      final failed = delegate.setNewRoutePath(const [_Route('rejected')]);
-      final discarded = delegate.setNewRoutePath(const [_Route('dependent')]);
-      expect(identical(failed, discarded), isTrue);
-      await started.future;
-      release.complete();
-
-      late Object actual;
-      late StackTrace actualStack;
-      try {
-        await failed;
-      } on Object catch (error, stack) {
-        actual = error;
-        actualStack = stack;
-      }
-
-      expect(actual, same(expected));
-      expect(actualStack.toString(), expectedStack.toString());
-      expect(state.root, const [_Route('home')]);
-
-      shouldFail = false;
-      await delegate.setNewRoutePath(const [_Route('recovered')]);
-      expect(state.root, const [_Route('recovered')]);
-    });
 
     for (final lateFailure in <bool>[false, true]) {
       testWidgets(
