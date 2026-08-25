@@ -36,7 +36,9 @@ scenario on the home screen maps to one typed route in the catalog.
 The primary app is organised **feature-first**: each feature owns data-only
 routes, screens, wire-name enum, decoder contribution, typed page contribution,
 and navigation sugar. Its `composition/` directory only aggregates those
-contributions. The other app folders remain independent alternatives.
+contributions. It uses `RoutingConfig` so async guard redirects, platform
+supersession, system Back, and Web history correction share one transaction
+boundary. The other app folders remain independent low-level alternatives.
 
 ## Run
 

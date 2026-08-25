@@ -121,6 +121,36 @@ void main() {
       },
     );
 
+    test(
+      'listener navigation after redirect uses the committed root',
+      () async {
+        final state = RoutesState<TestRoute>(const [TestRoute('committed')], (
+          requested,
+        ) {
+          if (requested.length == 1 && requested.single.name == 'requested') {
+            return const [TestRoute('redirected')];
+          }
+          return requested;
+        });
+        addTearDown(state.dispose);
+        var appended = false;
+        state.addListener(() {
+          if (!appended && state.top.name == 'redirected') {
+            appended = true;
+            state.push(const TestRoute('relative'));
+          }
+        });
+
+        state.setRoot(const [TestRoute('requested')]);
+        await state.processingCompleted;
+
+        expect(state.root.map((route) => route.name), [
+          'redirected',
+          'relative',
+        ]);
+      },
+    );
+
     test('push appends to the stack', () async {
       final state = stateWith([const TestRoute('a')]);
       addTearDown(state.dispose);
@@ -562,6 +592,25 @@ void main() {
   });
 
   group('RoutesState pushForResult / popWith', () {
+    test(
+      'immediate push and pop completes only after the pop commits',
+      () async {
+        final state = stateWith([const TestRoute('home')]);
+        addTearDown(state.dispose);
+
+        final result = state.pushForResult<int>(const TestRoute('picker'));
+        var completed = false;
+        unawaited(result.then((_) => completed = true));
+        state.popWith<int>(42);
+
+        expect(completed, isFalse);
+        await state.processingCompleted;
+
+        expect(await result, 42);
+        expect(state.root, const [TestRoute('home')]);
+      },
+    );
+
     test('completes with the value passed to popWith', () async {
       final state = stateWith([const TestRoute('home')]);
       addTearDown(state.dispose);
@@ -586,6 +635,134 @@ void main() {
       await state.processingCompleted;
 
       expect(await result, isNull);
+    });
+
+    test('a guard-reverted popWith leaves the result pending', () async {
+      var rejectPop = true;
+      late final RoutesState<TestRoute> state;
+      state = RoutesState<TestRoute>(const [TestRoute('home')], (
+        requested,
+      ) {
+        if (rejectPop && requested.length == 1) {
+          return state.root;
+        }
+        return requested;
+      });
+      addTearDown(state.dispose);
+
+      final result = state.pushForResult<int>(const TestRoute('picker'));
+      await state.processingCompleted;
+      var completed = false;
+      unawaited(result.then((_) => completed = true));
+
+      state.popWith<int>(1);
+      await state.processingCompleted;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(completed, isFalse);
+      expect(state.top.name, 'picker');
+
+      rejectPop = false;
+      state.popWith<int>(2);
+      await state.processingCompleted;
+      expect(await result, 2);
+    });
+
+    test('a live popWith failure leaves a committed result pending', () async {
+      var failPop = true;
+      final expected = StateError('pop failed');
+      final state = RoutesState<TestRoute>(const [TestRoute('home')], (
+        requested,
+      ) {
+        if (failPop && requested.length == 1) {
+          throw expected;
+        }
+        return requested;
+      });
+      addTearDown(state.dispose);
+
+      final result = state.pushForResult<int>(const TestRoute('picker'));
+      await state.processingCompleted;
+      var completed = false;
+      unawaited(result.then((_) => completed = true));
+
+      state.popWith<int>(1);
+      await expectLater(state.processingCompleted, throwsA(same(expected)));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(completed, isFalse);
+      expect(state.top.name, 'picker');
+
+      failPop = false;
+      state.popWith<int>(2);
+      await state.processingCompleted;
+      expect(await result, 2);
+    });
+
+    test('a failed speculative result route completes with null', () async {
+      final release = Completer<void>();
+      final started = Completer<void>();
+      final expected = StateError('push failed');
+      final state = RoutesState<TestRoute>(const [TestRoute('home')], (
+        requested,
+      ) async {
+        started.complete();
+        await release.future;
+        throw expected;
+      });
+      addTearDown(state.dispose);
+
+      final result = state.pushForResult<int>(const TestRoute('picker'));
+      final drain = state.processingCompleted;
+      await started.future;
+      release.complete();
+
+      await expectLater(drain, throwsA(same(expected)));
+      expect(await result, isNull);
+      expect(state.root, const [TestRoute('home')]);
+    });
+
+    test('a fail-fast discarded result route completes with null', () async {
+      final release = Completer<void>();
+      final started = Completer<void>();
+      final expected = StateError('earlier request failed');
+      var calls = 0;
+      final state = RoutesState<TestRoute>(const [TestRoute('home')], (
+        requested,
+      ) async {
+        calls++;
+        started.complete();
+        await release.future;
+        throw expected;
+      });
+      addTearDown(state.dispose);
+
+      state.setRoot(const [TestRoute('first')]);
+      final result = state.pushForResult<int>(const TestRoute('picker'));
+      final drain = state.processingCompleted;
+      await started.future;
+      release.complete();
+
+      await expectLater(drain, throwsA(same(expected)));
+      expect(await result, isNull);
+      expect(calls, 1);
+      expect(state.root, const [TestRoute('home')]);
+    });
+
+    test('result callback observes the root after the committed pop', () async {
+      final state = stateWith([const TestRoute('home')]);
+      addTearDown(state.dispose);
+
+      final result = state.pushForResult<int>(const TestRoute('picker'));
+      await state.processingCompleted;
+      List<TestRoute>? callbackRoot;
+      unawaited(result.then((_) => callbackRoot = state.root));
+
+      state.popWith<int>(42);
+      await state.processingCompleted;
+      await result;
+
+      expect(callbackRoot, const [TestRoute('home')]);
     });
 
     test('dispose completes pending results with null', () async {

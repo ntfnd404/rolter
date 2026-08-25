@@ -44,10 +44,12 @@ abstract interface class NavigationService<R extends RouteNode> {
 
   /// Pushes [route] and completes when it is popped — with the value passed to
   /// [popWith], or null if it leaves the tree without one (e.g. system back) or
-  /// the backing navigation state is torn down. An awaiter must check its own
-  /// lifecycle before performing follow-up navigation after a null result.
+  /// its speculative enqueue is discarded after a failure, or the backing
+  /// navigation state is torn down. An awaiter must check its own lifecycle
+  /// before performing follow-up navigation after a null result.
   Future<T?> pushForResult<T>(R route);
 
-  /// Completes the active route's pending result with [result] and pops it.
+  /// Pops the effective top and completes its pending result only after the
+  /// applied tree removes it. A guard revert or live failure keeps it pending.
   void popWith<T>(T result);
 }

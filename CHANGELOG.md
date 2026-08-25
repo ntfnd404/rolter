@@ -1,3 +1,45 @@
+## 0.3.0
+
+### Added
+
+- `RoutingConfig`, the recommended root `MaterialApp.router` integration.
+  It starts framework transaction identity before parsing, preserves custom
+  parsers/providers and `RouteInformation.state`, and coordinates root Back,
+  request settlement, and URL reporting without a second route-state tree.
+
+### Changed
+
+- `RoutingDelegate` now gives every new, initial, and restored framework route
+  path its own Future. The Future waits for that request's asynchronous
+  pipeline, reaches completion immediately before its synchronous state
+  publication, and does not wait for later requests in the shared FIFO drain.
+- The coordinated config abandons an uncommitted framework transaction when a
+  newer platform route or root Back supersedes it. Every actually enqueued app
+  mutation creates the same temporal FIFO barrier, while pre-enqueue no-ops and
+  failed predicate/transform calculations leave platform work untouched.
+- Framework request errors preserve their original object and stack. Tracked
+  framework requests buffered behind a failed transaction receive the same
+  causal error without running, while a fresh request can start a new drain.
+- `popWith(result)` now completes the pending result only when the applied tree
+  removes its target. Guard reverts and live failures keep a committed result
+  pending; failed speculative result routes complete with `null`.
+- Browser guard corrections use replace-style reporting to avoid Back loops.
+  A browser-selected URL may remain visible while async policy settles, but it
+  is not committed route state. App routes that publish normally keep Flutter's
+  standard reporting; no-publication, failure, discard, and unhandled root Back
+  restore the committed URI without allowing stale corrections to win.
+- Coordinated transactions retain only the originating URI. Opaque
+  `RouteInformation.state` still reaches custom parsers unchanged and is never
+  compared, logged, or stringified by Rolter.
+- The supported pre-1.0 public surface and compatibility policy are now
+  explicit. SDK constraints, dependencies, route identity, and URL grammar did
+  not change; `RoutingConfig` is the only additive public declaration.
+
+### Documentation
+
+- Added the [0.2.1 to 0.3.0 migration guide](doc/migration_0_2_to_0_3.md) for
+  callers that directly observe `RouterDelegate` Futures.
+
 ## 0.2.1
 
 ### Fixed

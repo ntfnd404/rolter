@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../model/route_node.dart';
 import '../pages/route_page_builder.dart';
+import '../state/navigation_queue.dart';
 import '../state/routes_state.dart';
 
 /// Generic, screen-agnostic [RouterDelegate].
@@ -10,6 +11,10 @@ import '../state/routes_state.dart';
 /// Page composition is supplied through [pageBuilder], so route nodes may stay
 /// data-only. Applications that prefer route-owned rendering can pass
 /// `buildPageFromRouteNode`.
+///
+/// This low-level delegate preserves transparent FIFO behavior. For a root
+/// Router that must coordinate asynchronous parsing, platform supersession,
+/// system Back, and browser-history correction, use `RoutingConfig`.
 class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
     with ChangeNotifier {
   /// Creates a delegate that renders and mutates [_state], optionally with a
@@ -66,16 +71,25 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
     return navigator.maybePop();
   }
 
-  /// Enqueues [configuration] and accepts the framework request synchronously.
+  /// Enqueues [configuration] and returns this request's completion.
   ///
-  /// The returned future does not represent asynchronous pipeline completion.
-  /// Application code that owns the backing state can observe the shared
-  /// route-state drain through [RoutesState.processingCompleted].
+  /// The future completes after this configuration's asynchronous pipeline is
+  /// ready to commit. By the time its callbacks run, the resulting route state
+  /// has been published. It does not wait for later requests in the shared
+  /// drain; application code can await [RoutesState.processingCompleted] when
+  /// it needs the entire active drain to become idle.
+  ///
+  /// A newer request does not cancel this one at this low-level boundary.
+  /// Parser-start supersession is provided only by `RoutingConfig`.
   @override
   Future<void> setNewRoutePath(List<R> configuration) {
-    _state.setRoot(configuration);
+    final request = NavigationRequest.fifo(Object());
 
-    return SynchronousFuture<void>(null);
+    return applyFrameworkRoutePath<R>(
+      _state,
+      configuration,
+      request,
+    );
   }
 
   @override

@@ -42,8 +42,10 @@ class NavigationQueue<R extends RouteNode> {
   NavigationQueue(this._process);
 
   final SnapshotProcessor<R> _process;
-  final ListQueue<List<R>> _buffer = ListQueue<List<R>>();
+  final ListQueue<_QueuedSnapshot<R>> _buffer = ListQueue<_QueuedSnapshot<R>>();
+  _QueuedSnapshot<R>? _active;
   Future<void>? _running;
+  Future<void>? _observedTrackedDrain;
 
   /// Whether the queue is currently draining.
   bool get isProcessing => _running != null;
@@ -57,8 +59,45 @@ class NavigationQueue<R extends RouteNode> {
       _running ?? SynchronousFuture<void>(null);
 
   /// Enqueues an immutable copy of [snapshot] and starts draining if idle.
-  void add(List<R> snapshot) {
-    _buffer.addLast(List<R>.unmodifiable(snapshot));
+  void add(List<R> snapshot) => _addApplication(snapshot);
+
+  void _addApplication(
+    List<R> snapshot, {
+    ApplicationNavigationMetadata? metadata,
+  }) {
+    _buffer.addLast(_QueuedSnapshot<R>.application(snapshot, metadata));
+    _startDrain();
+  }
+
+  Future<void> _addTracked(
+    List<R> snapshot,
+    NavigationRequest request,
+  ) {
+    _buffer.addLast(_QueuedSnapshot<R>.framework(snapshot, request));
+    _startDrain();
+    _observeTrackedDrain();
+
+    return request.future;
+  }
+
+  void _observeTrackedDrain() {
+    final drain = _running!;
+    if (identical(_observedTrackedDrain, drain)) {
+      return;
+    }
+    _observedTrackedDrain = drain;
+    // A framework request exposes its own error Future. Observe the shared
+    // drain so the same failure is not reported a second time when application
+    // code did not explicitly await processingCompleted.
+    unawaited(
+      drain.then<void>(
+        (_) {},
+        onError: (Object _, StackTrace _) {},
+      ),
+    );
+  }
+
+  void _startDrain() {
     // Defer the drain until `_running` holds its Future. Besides making
     // isProcessing immediately accurate, this prevents a synchronously
     // failing processor from completing before the active drain is recorded.
@@ -68,13 +107,256 @@ class NavigationQueue<R extends RouteNode> {
   Future<void> _drain() async {
     try {
       while (_buffer.isNotEmpty) {
-        await _process(_buffer.removeFirst());
+        final entry = _buffer.removeFirst();
+        _active = entry;
+        try {
+          await _process(entry.snapshot);
+          entry.request?.completeSuccess();
+        } on Object catch (error, stackTrace) {
+          entry.request?.completeError(error, stackTrace);
+          for (final buffered in _buffer) {
+            final request = buffered.request;
+            if (request == null) {
+              buffered.applicationMetadata?.discard();
+              continue;
+            }
+            request.canCommit
+                ? request.completeError(error, stackTrace)
+                : request.completeAbandoned();
+          }
+          _buffer.clear();
+          Error.throwWithStackTrace(error, stackTrace);
+        } finally {
+          _active = null;
+        }
       }
-    } catch (_) {
-      _buffer.clear();
-      rethrow;
     } finally {
       _running = null;
     }
   }
+
+  void _sealCommittableTrackedRequests() {
+    final activeRequest = _active?.request;
+    if (activeRequest != null && activeRequest.canCommit) {
+      activeRequest.seal();
+    }
+    for (final entry in _buffer) {
+      final request = entry.request;
+      if (request != null && request.canCommit) {
+        request.seal();
+      }
+    }
+  }
+
+  List<R>? get _latestEffectiveSnapshot {
+    for (final entry in _buffer.toList(growable: false).reversed) {
+      if (entry.request?.canCommit ?? true) {
+        return entry.snapshot;
+      }
+    }
+    final active = _active;
+    if (active != null &&
+        !active.passedCommitBoundary &&
+        (active.request?.canCommit ?? true)) {
+      return active.snapshot;
+    }
+
+    return null;
+  }
 }
+
+final class _QueuedSnapshot<R extends RouteNode> {
+  _QueuedSnapshot.application(List<R> snapshot, this.applicationMetadata)
+    : snapshot = List<R>.unmodifiable(snapshot),
+      request = null;
+
+  _QueuedSnapshot.framework(List<R> snapshot, this.request)
+    : snapshot = List<R>.unmodifiable(snapshot),
+      applicationMetadata = null;
+
+  final List<R> snapshot;
+  final NavigationRequest? request;
+  final ApplicationNavigationMetadata? applicationMetadata;
+  bool passedCommitBoundary = false;
+}
+
+/// Package-internal metadata for one application navigation entry.
+///
+/// Result effects and Router coordination are deliberately independent. This
+/// type is absent from the public barrel and does not expose an app receipt.
+@internal
+final class ApplicationNavigationMetadata {
+  /// Creates metadata consumed only by [RoutesState] and its coordinator.
+  ApplicationNavigationMetadata({
+    this.effect,
+    this.coordinatorContext,
+    VoidCallback? onDiscard,
+  }) : _onDiscard = onDiscard;
+
+  /// Optional commit-aligned effect such as a `popWith` result.
+  final Object? effect;
+
+  /// Opaque context owned by the coordinated Router integration.
+  final Object? coordinatorContext;
+
+  final VoidCallback? _onDiscard;
+  bool _discarded = false;
+
+  /// Reports fail-fast discard exactly once.
+  void discard() {
+    if (_discarded) {
+      return;
+    }
+    _discarded = true;
+    _onDiscard?.call();
+  }
+}
+
+/// Package-internal lifecycle for one framework navigation request.
+///
+/// This type is intentionally absent from `package:rolter/rolter.dart`.
+@internal
+final class NavigationRequest {
+  /// Creates a request whose transaction may become superseded before commit.
+  NavigationRequest({
+    required this.token,
+    required bool Function() canCommit,
+    VoidCallback? onSeal,
+    VoidCallback? onSuccess,
+    VoidCallback? onFailure,
+    VoidCallback? onAbandon,
+  }) : _canCommit = canCommit,
+       _onSeal = onSeal,
+       _onSuccess = onSuccess,
+       _onFailure = onFailure,
+       _onAbandon = onAbandon;
+
+  /// Creates a request that always follows transparent FIFO semantics.
+  NavigationRequest.fifo(this.token)
+    : _canCommit = _alwaysCommittable,
+      _onSeal = null,
+      _onSuccess = null,
+      _onFailure = null,
+      _onAbandon = null;
+
+  /// Opaque identity read only by package integration code.
+  final Object token;
+  final bool Function() _canCommit;
+  final VoidCallback? _onSeal;
+  final VoidCallback? _onSuccess;
+  final VoidCallback? _onFailure;
+  final VoidCallback? _onAbandon;
+  final Completer<void> _completer = Completer<void>();
+  bool _sealed = false;
+  bool _settled = false;
+
+  /// Completion for this request only, never for the shared queue drain.
+  Future<void> get future => _completer.future;
+
+  /// Whether this request may still publish its snapshot.
+  bool get canCommit => _canCommit();
+
+  /// Makes a currently valid request a FIFO dependency of an app operation.
+  void seal() {
+    if (_sealed || !_canCommit()) {
+      return;
+    }
+    _sealed = true;
+    _onSeal?.call();
+  }
+
+  /// Settles an accepted request at its state commit boundary.
+  void completeSuccess() {
+    if (_settled) {
+      return;
+    }
+    _settled = true;
+    _onSuccess?.call();
+    _completer.complete();
+  }
+
+  /// Settles a superseded or teardown-abandoned request successfully.
+  void completeAbandoned() {
+    if (_settled) {
+      return;
+    }
+    _settled = true;
+    _onAbandon?.call();
+    _completer.complete();
+  }
+
+  /// Settles a live failed request without wrapping its error.
+  void completeError(Object error, StackTrace stackTrace) {
+    if (_settled) {
+      return;
+    }
+    _settled = true;
+    _onFailure?.call();
+    _completer.completeError(error, stackTrace);
+  }
+
+  static bool _alwaysCommittable() => true;
+}
+
+/// Enqueues one package-internal framework request with its own completion.
+@internal
+Future<void> enqueueTrackedNavigationSnapshot<R extends RouteNode>(
+  NavigationQueue<R> queue,
+  List<R> snapshot,
+  NavigationRequest request,
+) => queue._addTracked(snapshot, request);
+
+/// Enqueues an application snapshot with package-private commit metadata.
+@internal
+void enqueueApplicationNavigationSnapshot<R extends RouteNode>(
+  NavigationQueue<R> queue,
+  List<R> snapshot, {
+  ApplicationNavigationMetadata? metadata,
+}) => queue._addApplication(snapshot, metadata: metadata);
+
+/// Returns the request currently being processed, if framework-tracked.
+@internal
+NavigationRequest? activeNavigationRequest<R extends RouteNode>(
+  NavigationQueue<R> queue,
+) => queue._active?.request;
+
+/// Returns package-private metadata attached to the active application entry.
+@internal
+ApplicationNavigationMetadata? activeApplicationNavigationMetadata<
+  R extends RouteNode
+>(NavigationQueue<R> queue) => queue._active?.applicationMetadata;
+
+/// Completes the active tracked request at its state commit boundary.
+@internal
+void completeActiveNavigationRequest<R extends RouteNode>(
+  NavigationQueue<R> queue,
+) => queue._active?.request?.completeSuccess();
+
+/// Completes an active superseded or teardown-abandoned framework request.
+@internal
+void abandonActiveNavigationRequest<R extends RouteNode>(
+  NavigationQueue<R> queue,
+) => queue._active?.request?.completeAbandoned();
+
+/// Excludes an already accepted active snapshot from later relative app bases.
+@internal
+void markActiveNavigationCommitBoundary<R extends RouteNode>(
+  NavigationQueue<R> queue,
+) {
+  final active = queue._active;
+  if (active != null) {
+    active.passedCommitBoundary = true;
+  }
+}
+
+/// Seals current framework requests before an app snapshot depends on them.
+@internal
+void sealCommittableNavigationRequests<R extends RouteNode>(
+  NavigationQueue<R> queue,
+) => queue._sealCommittableTrackedRequests();
+
+/// Returns the latest queue snapshot that is still eligible to commit.
+@internal
+List<R>? latestEffectiveNavigationSnapshot<R extends RouteNode>(
+  NavigationQueue<R> queue,
+) => queue._latestEffectiveSnapshot;
