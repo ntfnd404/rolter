@@ -162,4 +162,54 @@ void main() {
     state.dispose();
     provider.dispose();
   });
+
+  testWidgets('state disposal suppresses an already scheduled route report', (
+    tester,
+  ) async {
+    final provider = RecordingProvider('/home');
+    final state = RoutesState<TestRoute>(
+      const [TestRoute('home')],
+      (requested) => requested,
+    );
+    final config = createTestConfig(state, provider: provider);
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: config));
+    await tester.pumpAndSettle();
+    provider.reports.clear();
+
+    state.setRoot(const [TestRoute('x')]);
+    await state.processingCompleted;
+    state.dispose();
+    await tester.pump();
+
+    expect(provider.reports, isEmpty);
+    expect(provider.disposed, isFalse);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    config.dispose();
+    provider.dispose();
+  });
+
+  test('a disposed config suppresses direct late provider reports', () {
+    final provider = RecordingProvider('/home');
+    final state = RoutesState<TestRoute>(
+      const [TestRoute('home')],
+      (requested) => requested,
+    );
+    final config = createTestConfig(state, provider: provider);
+    final adapter = config.routeInformationProvider;
+
+    config.dispose();
+    adapter.routerReportsNewRouteInformation(
+      RouteInformation(uri: Uri(path: '/late')),
+      type: RouteInformationReportingType.navigate,
+    );
+
+    expect(provider.reports, isEmpty);
+    expect(provider.disposed, isFalse);
+
+    state.dispose();
+    provider.dispose();
+  });
 }

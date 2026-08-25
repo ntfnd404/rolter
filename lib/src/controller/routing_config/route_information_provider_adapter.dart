@@ -41,9 +41,16 @@ final class CoordinatedRouteInformationProvider<R extends RouteNode>
     RouteInformation routeInformation, {
     RouteInformationReportingType type = RouteInformationReportingType.none,
   }) {
+    final effectiveType = _coordinator.consumeReportingType(
+      routeInformation,
+      type,
+    );
+    if (effectiveType == null) {
+      return;
+    }
     _source.routerReportsNewRouteInformation(
       routeInformation,
-      type: _coordinator.reportingType(routeInformation, type),
+      type: effectiveType,
     );
   }
 

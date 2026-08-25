@@ -27,7 +27,15 @@
   A browser-selected URL may remain visible while async policy settles, but it
   is not committed route state. App routes that publish normally keep Flutter's
   standard reporting; no-publication, failure, discard, and unhandled root Back
-  restore the committed URI without allowing stale corrections to win.
+  restore the committed URI without allowing stale corrections to win. A newer
+  platform intent also suppresses an older report that Flutter already prepared
+  for its next frame, including during initial async parsing, and teardown
+  prevents late reports from reaching the route-information provider.
+- Route-report intentions now belong to their actual presentation: current app
+  `Router.navigate` and `Router.neglect` intentions pass through, accepted
+  platform routes use Flutter's default intention, and corrections replace the
+  rejected entry. An unrelated report cannot consume another presentation's
+  prepared correction policy.
 - Coordinated transactions retain only the originating URI. Opaque
   `RouteInformation.state` still reaches custom parsers unchanged and is never
   compared, logged, or stringified by Rolter.

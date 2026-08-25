@@ -23,6 +23,10 @@ import 'routing_config/routing_delegate_adapter.dart';
 /// the platform defaults and owns them. Call [dispose] before disposing the
 /// backing state. Opaque `RouteInformation.state` is passed to the supplied
 /// parser unchanged; coordination retains only the platform request's URI.
+/// Use one instance with one simultaneously mounted root Router. A sequential
+/// remount is supported after the previous Router has fully unmounted; nested
+/// navigators use child dispatchers and route subtrees instead of remounting
+/// this root config.
 final class RoutingConfig<R extends RouteNode> implements RouterConfig<Object> {
   /// Creates a coordinated configuration for `MaterialApp.router`.
   RoutingConfig({

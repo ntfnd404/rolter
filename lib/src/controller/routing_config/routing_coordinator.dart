@@ -40,7 +40,7 @@ final class RoutingCoordinator<R extends RouteNode>
     );
     _latest = transaction;
     _pendingRootBackContext = null;
-    _preparedReport = null;
+    _setPresentation(const _RoutePresentation.suppressed());
     if (isDisposed) {
       abandon(transaction);
     }
@@ -69,21 +69,18 @@ final class RoutingCoordinator<R extends RouteNode>
   }
 
   /// Supersedes an unsealed pending transaction.
-  void supersede(FrameworkTransaction transaction) {
-    if (transaction.supersede()) {
-      _preparedReport = null;
-    }
-  }
+  void supersede(FrameworkTransaction transaction) => transaction.supersede();
 
   /// Records successful settlement at the queue commit boundary.
   void settleSuccess(FrameworkTransaction transaction) {
     if (!transaction.settleSuccess()) {
       return;
     }
-    _presentation = isLatest(transaction)
-        ? _RoutePresentation.framework(transaction.originUri)
-        : const _RoutePresentation.suppressed();
-    _preparedReport = null;
+    _setPresentation(
+      isLatest(transaction)
+          ? _RoutePresentation.framework(transaction.originUri)
+          : const _RoutePresentation.suppressed(),
+    );
   }
 
   /// Records one live framework failure and prepares resynchronization.
@@ -117,25 +114,41 @@ final class RoutingCoordinator<R extends RouteNode>
       return;
     }
     final reportOriginUri = configuration.reportOriginUri;
-    final replace = reportOriginUri != null && restored.uri != reportOriginUri;
-    _preparedReport = _PreparedRouteReport(restored, replace: replace);
+    final disposition = switch (reportOriginUri) {
+      null => _PreparedRouteReportDisposition.passthrough,
+      final originUri when restored.uri == originUri =>
+        _PreparedRouteReportDisposition.platformDefault,
+      _ => _PreparedRouteReportDisposition.replace,
+    };
+    _preparedReport = _PreparedRouteReport(
+      restored,
+      disposition: disposition,
+    );
   }
 
-  /// Applies replace-style correction only to the matching default report.
-  RouteInformationReportingType reportingType(
+  /// Consumes policy for [information], or suppresses forwarding with `null`.
+  RouteInformationReportingType? consumeReportingType(
     RouteInformation information,
     RouteInformationReportingType requested,
   ) {
+    if (isDisposed) {
+      return null;
+    }
     final prepared = _preparedReport;
-    _preparedReport = null;
-    if (requested != RouteInformationReportingType.none ||
-        prepared == null ||
-        !identical(prepared.information, information) ||
-        !prepared.replace) {
+    if (prepared == null || !identical(prepared.information, information)) {
       return requested;
     }
 
-    return RouteInformationReportingType.neglect;
+    _preparedReport = null;
+
+    return switch (prepared.disposition) {
+      _PreparedRouteReportDisposition.passthrough => requested,
+      _PreparedRouteReportDisposition.platformDefault =>
+        RouteInformationReportingType.none,
+      _PreparedRouteReportDisposition.replace =>
+        RouteInformationReportingType.neglect,
+      _PreparedRouteReportDisposition.suppress => null,
+    };
   }
 
   /// Registers the coordinated delegate's resync callback.
@@ -178,8 +191,6 @@ final class RoutingCoordinator<R extends RouteNode>
       supersede(latest);
     }
 
-    _preparedReport = null;
-
     return context;
   }
 
@@ -196,8 +207,7 @@ final class RoutingCoordinator<R extends RouteNode>
     if (changed) {
       _applicationGeneration++;
       supersession?.resolve();
-      _presentation = const _RoutePresentation.application();
-      _preparedReport = null;
+      _setPresentation(const _RoutePresentation.application());
       return;
     }
 
@@ -208,8 +218,7 @@ final class RoutingCoordinator<R extends RouteNode>
     }
 
     if (needsResync) {
-      _presentation = const _RoutePresentation.application();
-      _preparedReport = null;
+      _setPresentation(const _RoutePresentation.application());
     }
   }
 
@@ -255,11 +264,27 @@ final class RoutingCoordinator<R extends RouteNode>
     if (isDisposed) {
       return;
     }
-    _presentation = _RoutePresentation.correction(originUri);
-    _preparedReport = null;
+    _setPresentation(_RoutePresentation.correction(originUri));
     if (notify) {
       _resyncHandler?.call();
     }
+  }
+
+  void _setPresentation(_RoutePresentation presentation) {
+    _suppressPreparedReport();
+    _presentation = presentation;
+  }
+
+  void _suppressPreparedReport() {
+    final prepared = _preparedReport;
+    if (prepared == null ||
+        prepared.disposition == _PreparedRouteReportDisposition.suppress) {
+      return;
+    }
+    _preparedReport = _PreparedRouteReport(
+      prepared.information,
+      disposition: _PreparedRouteReportDisposition.suppress,
+    );
   }
 
   @override
@@ -304,8 +329,18 @@ final class _RoutePresentation {
 }
 
 final class _PreparedRouteReport {
-  const _PreparedRouteReport(this.information, {required this.replace});
+  const _PreparedRouteReport(
+    this.information, {
+    required this.disposition,
+  });
 
   final RouteInformation information;
-  final bool replace;
+  final _PreparedRouteReportDisposition disposition;
+}
+
+enum _PreparedRouteReportDisposition {
+  passthrough,
+  platformDefault,
+  replace,
+  suppress,
 }

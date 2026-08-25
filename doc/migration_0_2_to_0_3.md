@@ -48,7 +48,10 @@ remove application listeners and exact guard refresh callbacks
 → dispose application-owned history, guards, and services
 ```
 
-Only one active coordinated config may attach to a `RoutesState`.
+Only one active coordinated config may attach to a `RoutesState`, and that
+config is intended for one simultaneously mounted root Router. Sequential
+remount is supported after the previous Router is fully unmounted; nested
+navigators continue to use child dispatchers and route subtrees.
 
 ## Request and drain Futures
 
@@ -87,10 +90,12 @@ or infrastructure failures that Flutter may report asynchronously.
 
 ## Application FIFO barrier
 
-Application navigation is not converted to latest-wins. An app mutation seals
-all committable framework snapshots already accepted by the queue, invalidates
-parser-only work, and builds from the latest effective queue snapshot. This
-single temporal rule also applies to absolute operations such as `setRoot` and
+Application navigation is not converted to latest-wins. An app mutation reads
+the latest effective queue snapshot and completes fallible input copying plus
+synchronous predicate or transform calculation first. If it will enqueue, it
+then seals all committable framework snapshots already accepted by the queue,
+invalidates parser-only work, and enqueues its immutable snapshot. This single
+temporal rule also applies to absolute operations such as `setRoot` and
 `clearAndPush`. Consequently:
 
 ```text
@@ -127,17 +132,22 @@ Browser Back/Forward updates the address bar before async parsing or guards
 finish. The transient URL is not committed Rolter state. If normalization,
 redirect, or guard revert yields another URI, the coordinated provider replaces
 the rejected browser entry instead of pushing a correction that could create a
-Back loop.
+Back loop. While a platform request is pending, Rolter suppresses reports of the
+previous committed presentation, including an initial root or a report Flutter
+already prepared for its next frame.
 
 An app mutation that publishes a new route while a browser request is pending
 keeps ordinary Flutter reporting, so Back may intentionally select that browser
 entry again. If the app mutation publishes nothing, fails, is fail-fast
 discarded, or root Back is unhandled, the last committed URI replaces the
 superseded browser entry. A newer platform intent invalidates any older pending
-correction.
+route report or correction.
 
-Explicit `Router.navigate` and `Router.neglect` intentions are preserved.
-Custom parser/provider behavior, URI query/fragment, and opaque
+Explicit `Router.navigate` and `Router.neglect` intentions are preserved for
+the current app presentation produced by their callback. A provider-originated
+presentation uses the default intention instead of inheriting an older app
+callback's pending intention. Custom parser/provider behavior, URI
+query/fragment, and opaque
 `RouteInformation.state` pass through unchanged. Rolter does not retain it as
 transaction identity, compare it, log it, or stringify it. Nested navigators do
 not report independent URLs.

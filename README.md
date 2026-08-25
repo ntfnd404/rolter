@@ -270,10 +270,12 @@ of an already committed state in that case would require a second render-state
 tree, which Rolter deliberately does not introduce.
 
 Application navigation is never silently discarded by this policy. Every app
-mutation that is actually enqueued creates one temporal FIFO barrier: all
-committable framework snapshots already accepted by the queue are sealed, then
-the app snapshot is built from the latest effective queue state. This includes
-absolute operations such as `setRoot` and `clearAndPush`. For example,
+mutation first reads the latest effective queue state and completes its input
+copying plus synchronous predicate or transform calculation. If the operation
+will enqueue, it then creates one temporal FIFO barrier, seals all committable
+framework snapshots already accepted by the queue, and enqueues the immutable
+app snapshot. This includes absolute operations such as `setRoot` and
+`clearAndPush`. For example,
 `framework A → app X → framework B` commits in exactly that order.
 
 An operation that is known to do nothing before enqueue, such as `pop()` or
@@ -327,8 +329,12 @@ work drains, without committing its configuration.
 `RoutingConfig` borrows the supplied state, parser, provider, and
 back-button dispatcher. It owns its internal adapters and any default platform
 provider or dispatcher it creates. Only one active coordinated config may
-attach to a `RoutesState`; dispose it before attaching another. Low-level
-delegates, controllers, and services never own the state.
+attach to a `RoutesState`, and one config is intended for one simultaneously
+mounted root Router. Fully unmount it before a sequential remount or before
+disposing it; nested navigators use child dispatchers and route subtrees rather
+than mounting the root config again. Late reports are suppressed after config
+or state teardown. Low-level delegates, controllers, and services never own the
+state.
 
 An asynchronous guard must remain safe if its dependencies are disposed before
 its Future settles. A timeout can bound the drain, but does not provide that
@@ -577,15 +583,20 @@ screen's own concern — use Flutter's `RestorationMixin` inside the screen (or 
 
 On Web, Back or Forward changes the browser address before an asynchronous
 parser or guard settles. That pending address may therefore be visible briefly,
-but it is not the committed `RoutesState.root`. A superseded transaction does
-not publish a route or report a stale URL.
+but it is not the committed `RoutesState.root`. While that platform transaction
+is pending, the previous committed presentation is not reported over the new
+address, including during initial asynchronous parsing. A superseded
+transaction does not publish a route or report a stale URL, even if Flutter had
+already prepared that report for its next frame.
 
 When normalization, redirect, or guard revert produces a different final URI,
 the coordinated provider reports the correction with Flutter's `neglect`
 intention. The rejected browser-history entry is replaced instead of adding a
-new entry that would create a Back loop. Explicit `Router.navigate` and
-`Router.neglect` intentions pass through unchanged, while ordinary app
-navigation retains Flutter's standard reporting behavior.
+new entry that would create a Back loop. `Router.navigate` and `Router.neglect`
+intentions pass through for the current app presentation that their callback
+produced. A provider-originated presentation uses Flutter's default intention,
+so it cannot inherit an older app callback's still-pending intention. Ordinary
+app navigation retains Flutter's standard reporting behavior.
 
 If an app mutation supersedes a browser-selected request and publishes a new
 route, that app route uses the normal Flutter reporting intention; the browser
@@ -593,14 +604,15 @@ entry remains meaningful and Back may select it again. If the app mutation
 publishes nothing (no-op/guard revert), fails, is fail-fast discarded, or root
 Back is unhandled, Rolter restores the last committed URI with `neglect` so the
 rejected browser entry does not become a loop. A later platform intent makes an
-older prepared correction stale and cannot be overwritten by it.
+older prepared route or correction stale and cannot be overwritten by it.
 
 Custom parsers and providers remain supported. URI path, query, fragment, and
 `RouteInformation.state` are passed to them unchanged. Rolter treats `state` as
 opaque provider-owned data: it is not retained as transaction identity and is
 never compared, logged, or stringified. Only the root
 coordinated config should report route information; nested navigators keep
-using their child dispatchers and route subtrees.
+using their child dispatchers and route subtrees. A `RoutingConfig` is not
+supported as the simultaneous config of multiple root Router widgets.
 
 ## Web URL strategy
 
