@@ -1,6 +1,6 @@
 name: rolter
 description: "A typed, tree-based Flutter router with deep linking, nested navigation, guards, and external Page composition."
-version: 0.2.1
+version: 0.3.0
 
 homepage: https://github.com/ntfnd404/rolter
 repository: https://github.com/ntfnd404/rolter
@@ -28,6 +28,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  meta: ^1.16.0
 
 dev_dependencies:
   flutter_test:

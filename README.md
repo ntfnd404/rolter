@@ -9,14 +9,29 @@ guards, and external Page composition.
 - Route-owned or external Flutter Page composition
 - Root and nested navigators driven by one route-state tree
 - Guards, navigation history, results, and restoration
+- Request-scoped asynchronous Router transactions over deterministic FIFO
 - Custom Pages, transitions, and independent nested stacks
 - Built directly on top of Navigator 2.0 (`Router`, `RouterDelegate`,
   `RouteInformationParser`)
 
-## Status
+Rolter models the complete navigation state as an immutable typed tree. The
+same tree drives root and nested navigators, URLs, guards, history, restoration,
+and result-returning routes without requiring code generation or a DI framework.
 
-This package is in early development. The API is not yet stable and may
-change significantly between versions.
+## Status and compatibility
+
+Rolter is pre-1.0. Starting with 0.3.0, the API exported from
+`package:rolter/rolter.dart` and the built-in URL formats are treated as
+supported compatibility contracts.
+
+Patch releases are backward-compatible. Before 1.0, a necessary incompatible
+public API change may ship only in a minor release and must be documented in
+the changelog with migration guidance. Raising the minimum supported Dart or
+Flutter SDK is also a compatibility-impacting minor change.
+
+Imports from `package:rolter/src/` are unsupported implementation details and
+may change without notice. Lifecycle, error, disposal, and URL compatibility
+rules documented below are part of the supported behavioral contract.
 
 Rolter requires Flutter 3.32 or later and Dart 3.8 or later. Development and
 canonical formatting use the latest stable SDK, while CI verifies the declared
@@ -41,7 +56,7 @@ Add `rolter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  rolter: ^0.2.1
+  rolter: ^0.3.0
 ```
 
 ## Usage
@@ -87,23 +102,25 @@ final registry = RouteRegistry<AppRoute>(
   fallback: (uri) => const HomeRoute(),
 );
 
-// 3. Wire Navigator 2.0.
+// 3. Wire the coordinated Navigator 2.0 integration.
 final state = RoutesState<AppRoute>(const [HomeRoute()], (stack) => stack);
-
-final app = MaterialApp.router(
-  routerDelegate: RoutingDelegate<AppRoute>(
-    state,
-    pageBuilder: buildPageFromRouteNode<AppRoute>,
-  ),
+final router = RoutingConfig<AppRoute>(
+  state: state,
   routeInformationParser:
       RoutingInformationParser<AppRoute>(TreeUrlCodec(registry)),
+  pageBuilder: buildPageFromRouteNode<AppRoute>,
+);
+
+final app = MaterialApp.router(
+  routerConfig: router,
 );
 ```
 
 To call navigation from screens via `context.navigator`, place a
 `NavigatorScope` (with your `NavigationController`) **above**
 `MaterialApp.router` — see the [`example/`](example/) app. The snippet above
-renders and deep-links without it.
+renders and deep-links without it. The composition owner must dispose `router`
+before `state`.
 
 For application-owned composition, dependency-injection options, and exact
 scope visibility, see [Page composition](doc/page_composition.md). The
@@ -133,7 +150,8 @@ constructor injection describes dependency flow. The adapter adds an
 application-owned portability boundary; it is example code, not a fourth
 Rolter composition API.
 
-Route-owned composition uses the permanent adapter shown in the quick start:
+The low-level Page delegate used inside the coordinated config is also
+available for advanced manual Router assembly:
 
 ```dart
 final delegate = RoutingDelegate<AppRoute>(
@@ -141,6 +159,10 @@ final delegate = RoutingDelegate<AppRoute>(
   pageBuilder: buildPageFromRouteNode<AppRoute>,
 );
 ```
+
+Manual assembly keeps transparent FIFO semantics but cannot see a newer
+platform request while an asynchronous parser is still running. Prefer
+`RoutingConfig` for a root Router with async parsing or guards.
 
 With a data-only route, composition moves to an application builder:
 
@@ -206,7 +228,9 @@ Read [Page composition and application architecture](doc/page_composition.md)
 to choose by application shape and compare ownership, dependency flow,
 lifecycle, extensibility, and router portability. See
 [Migration from 0.1.x to 0.2.0](doc/migration_0_1_to_0_2.md) for the exact
-breaking API diff.
+breaking API diff. When upgrading from 0.2.1, also read
+[Migration from 0.2.1 to 0.3.0](doc/migration_0_2_to_0_3.md) for the new
+request-scoped `RouterDelegate` Future contract.
 
 ## Extensible navigation scheduling and security
 
@@ -227,16 +251,60 @@ properties so every request passes through the configured `ApplyPipeline`.
 the queue becomes idle share it, and a failure discards work buffered behind
 the failed snapshot.
 
-In `0.2.1`, `RoutingDelegate` accepts new, initial, and restored framework route
-paths synchronously and enqueues their actual application through the same
-state queue. Its returned Future does not represent pipeline completion or
-surface pipeline errors. Application code that owns the `RoutesState` can await
-`processingCompleted`; request-scoped Flutter completion is planned separately.
+In `0.3.0`, every new, initial, or restored framework route path receives its
+own Future. That Future remains pending while the request's pipeline runs,
+completes at its commit boundary, and preserves that request's live error and
+stack. By the time a success callback runs, the resulting route state is
+published. It does not wait for later requests in the same drain.
+
+This request Future and `RoutesState.processingCompleted` have different jobs:
+the former settles one framework transaction, while the latter waits for the
+whole active drain, including requests added before the queue becomes idle.
+`RoutingConfig` additionally creates transaction identity at parser start.
+A newer platform route or a root system Back supersedes an older uncommitted
+framework transaction, including one still parsing. A superseded request is
+abandoned without a route, history, observer, result, or widget transition.
+Once a request has committed it is no longer supersedable; Flutter may also
+call `RouterDelegate.build` for an unrelated parent rebuild. Avoiding display
+of an already committed state in that case would require a second render-state
+tree, which Rolter deliberately does not introduce.
+
+Application navigation is never silently discarded by this policy. Every app
+mutation first reads the latest effective queue state and completes its input
+copying plus synchronous predicate or transform calculation. If the operation
+will enqueue, it then creates one temporal FIFO barrier, seals all committable
+framework snapshots already accepted by the queue, and enqueues the immutable
+app snapshot. This includes absolute operations such as `setRoot` and
+`clearAndPush`. For example,
+`framework A → app X → framework B` commits in exactly that order.
+
+An operation that is known to do nothing before enqueue, such as `pop()` or
+`popWith()` on a one-entry effective root stack, creates no barrier and does not
+supersede parser-only platform work. Other equivalent snapshots are still
+enqueued because a guard may depend on external state; `reevaluate()` always
+reruns the pipeline. Predicate and transform callbacks are synchronous routing
+calculations: keep them pure and do not call navigation APIs from inside them.
+The low-level `RoutingDelegate` remains available when transparent FIFO without
+parser-level supersession is the desired integration.
+
+A failure retains the queue's fail-fast behavior: buffered framework Futures
+receive the causal error, untracked application snapshots are discarded, and a
+fresh request starts a new drain.
+
+`popWith(result)` is commit-aligned: its result completes only when the applied
+tree actually removes the target route. A guard revert or live failure leaves
+the committed route's result pending; a speculative result route discarded by
+a failed drain completes with `null`.
+
+Expected guard decisions such as redirects and cancellation should return a
+settled route result rather than throw. A live pipeline exception represents a
+programming or infrastructure failure and can surface through Flutter's async
+Router integration.
 
 ## Router lifecycle
 
 The owner must stop external navigation producers and detach app-owned
-listeners before disposing the delegate and route state:
+listeners before disposing the coordinated config and route state:
 
 ```dart
 final routeRefresh = pipeline.refresh;
@@ -245,7 +313,7 @@ routeRefresh.addListener(reevaluateRoutes);
 
 // During owner teardown:
 routeRefresh.removeListener(reevaluateRoutes);
-delegate.dispose();
+router.dispose();
 state.dispose();
 history.dispose(); // when the application owns NavigationHistory
 ```
@@ -255,6 +323,18 @@ An active pipeline cannot be cancelled generically, but its late success or
 error is abandoned without changing the route tree or notifying callbacks;
 buffered snapshots do not start their pipelines. Capture `processingCompleted`
 before disposal if teardown diagnostics need to observe the remaining drain.
+An abandoned framework request Future completes successfully after its queued
+work drains, without committing its configuration.
+
+`RoutingConfig` borrows the supplied state, parser, provider, and
+back-button dispatcher. It owns its internal adapters and any default platform
+provider or dispatcher it creates. Only one active coordinated config may
+attach to a `RoutesState`, and one config is intended for one simultaneously
+mounted root Router. Fully unmount it before a sequential remount or before
+disposing it; nested navigators use child dispatchers and route subtrees rather
+than mounting the root config again. Late reports are suppressed after config
+or state teardown. Low-level delegates, controllers, and services never own the
+state.
 
 An asynchronous guard must remain safe if its dependencies are disposed before
 its Future settles. A timeout can bound the drain, but does not provide that
@@ -489,8 +569,7 @@ on `MaterialApp.router`:
 ```dart
 MaterialApp.router(
   restorationScopeId: 'app',
-  routerDelegate: delegate,
-  routeInformationParser: parser,
+  routerConfig: router,
 );
 ```
 
@@ -499,6 +578,41 @@ The delegate restores through the framework's default `setRestoredRoutePath`
 needed. Per-screen *ephemeral* state (scroll offset, a half-typed field) is the
 screen's own concern — use Flutter's `RestorationMixin` inside the screen (or a
 `RouteScope` value), independent of the router.
+
+## Web transaction and browser-history behavior
+
+On Web, Back or Forward changes the browser address before an asynchronous
+parser or guard settles. That pending address may therefore be visible briefly,
+but it is not the committed `RoutesState.root`. While that platform transaction
+is pending, the previous committed presentation is not reported over the new
+address, including during initial asynchronous parsing. A superseded
+transaction does not publish a route or report a stale URL, even if Flutter had
+already prepared that report for its next frame.
+
+When normalization, redirect, or guard revert produces a different final URI,
+the coordinated provider reports the correction with Flutter's `neglect`
+intention. The rejected browser-history entry is replaced instead of adding a
+new entry that would create a Back loop. `Router.navigate` and `Router.neglect`
+intentions pass through for the current app presentation that their callback
+produced. A provider-originated presentation uses Flutter's default intention,
+so it cannot inherit an older app callback's still-pending intention. Ordinary
+app navigation retains Flutter's standard reporting behavior.
+
+If an app mutation supersedes a browser-selected request and publishes a new
+route, that app route uses the normal Flutter reporting intention; the browser
+entry remains meaningful and Back may select it again. If the app mutation
+publishes nothing (no-op/guard revert), fails, is fail-fast discarded, or root
+Back is unhandled, Rolter restores the last committed URI with `neglect` so the
+rejected browser entry does not become a loop. A later platform intent makes an
+older prepared route or correction stale and cannot be overwritten by it.
+
+Custom parsers and providers remain supported. URI path, query, fragment, and
+`RouteInformation.state` are passed to them unchanged. Rolter treats `state` as
+opaque provider-owned data: it is not retained as transaction identity and is
+never compared, logged, or stringified. Only the root
+coordinated config should report route information; nested navigators keep
+using their child dispatchers and route subtrees. A `RoutingConfig` is not
+supported as the simultaneous config of multiple root Router widgets.
 
 ## Web URL strategy
 

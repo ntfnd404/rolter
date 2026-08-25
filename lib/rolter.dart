@@ -15,6 +15,7 @@
 library;
 
 export 'src/controller/entry_query_store.dart' show EntryQueryStore;
+export 'src/controller/routing_config.dart' show RoutingConfig;
 export 'src/controller/routing_delegate.dart' show RoutingDelegate;
 export 'src/controller/routing_information_parser.dart'
     show RoutingInformationParser;

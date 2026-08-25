@@ -49,8 +49,7 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
   late final RoutesState<AppRoute> _state;
   late final AppNavigator _navigator;
   late final AppRoutePageCatalog _pages;
-  late final RoutingDelegate<AppRoute> _delegate;
-  late final RoutingInformationParser<AppRoute> _parser;
+  late final RoutingConfig<AppRoute> _router;
   late final Listenable _routeRefresh;
   late final VoidCallback _reevaluateRoutes;
   // Captures the entry URL's query (e.g. utm_*); values are never logged.
@@ -76,10 +75,13 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
     _routeRefresh.addListener(_reevaluateRoutes);
     _navigator = AppNavigator(_state);
     _pages = buildAppPages(dependencies: _dependencies);
-    _delegate = RoutingDelegate<AppRoute>(_state, pageBuilder: _pages.build);
-    _parser = RoutingInformationParser<AppRoute>(
-      TreeUrlCodec<AppRoute>(appRegistry),
-      entryQuery: _entryQuery,
+    _router = RoutingConfig<AppRoute>(
+      state: _state,
+      routeInformationParser: RoutingInformationParser<AppRoute>(
+        TreeUrlCodec<AppRoute>(appRegistry),
+        entryQuery: _entryQuery,
+      ),
+      pageBuilder: _pages.build,
     );
     _entryQuery.addListener(
       () => debugPrint(
@@ -91,7 +93,7 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
   @override
   void dispose() {
     _routeRefresh.removeListener(_reevaluateRoutes);
-    _delegate.dispose();
+    _router.dispose();
     _state.dispose();
     _lockGuard.dispose();
     _lockService.dispose();
@@ -109,8 +111,7 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
         // The navigation tree restores from RouteInformation after the OS kills
         // the app (state restoration), in addition to deep links on web.
         restorationScopeId: 'rolter-example',
-        routerDelegate: _delegate,
-        routeInformationParser: _parser,
+        routerConfig: _router,
         builder: (context, child) => BlocProvider<LockBloc>(
           create: (_) => LockBloc(_lockService),
           child: child!,

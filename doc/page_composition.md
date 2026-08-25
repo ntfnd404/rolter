@@ -559,10 +559,11 @@ These mechanisms solve different ownership problems:
 
 The composition root also owns router teardown. Stop external navigation
 producers, remove app-owned listeners (including the exact callback registered
-with `GuardedPipeline.refresh`), dispose `RoutingDelegate`, and then dispose
-`RoutesState`. Dispose app-owned history, guards, and services afterwards in an
-order that is safe for any already-running asynchronous guard. A bounded guard
-is not automatically late-safe for dependencies disposed while it is awaiting.
+with `GuardedPipeline.refresh`), dispose `RoutingConfig` (or the low-level
+`RoutingDelegate` in a manual integration), and then dispose `RoutesState`.
+Dispose app-owned history, guards, and services afterwards in an order that is
+safe for any already-running asynchronous guard. A bounded guard is not
+automatically late-safe for dependencies disposed while it is awaiting.
 
 Flutter placement semantics are important and test-covered:
 
