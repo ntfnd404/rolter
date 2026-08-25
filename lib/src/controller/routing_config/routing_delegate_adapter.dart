@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../../model/route_node.dart';
 import '../../pages/route_page_builder.dart';
@@ -12,7 +13,7 @@ import 'framework_transaction.dart';
 import 'routing_coordinator.dart';
 
 /// Delegate adapter for request completion, presentation, and root Back.
-@internal
+@meta.internal
 final class CoordinatedRoutingDelegate<R extends RouteNode>
     extends RouterDelegate<Object>
     with ChangeNotifier {

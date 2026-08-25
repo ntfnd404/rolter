@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../model/route_node.dart';
 
@@ -184,7 +185,7 @@ final class _QueuedSnapshot<R extends RouteNode> {
 ///
 /// Result effects and Router coordination are deliberately independent. This
 /// type is absent from the public barrel and does not expose an app receipt.
-@internal
+@meta.internal
 final class ApplicationNavigationMetadata {
   /// Creates metadata consumed only by [RoutesState] and its coordinator.
   ApplicationNavigationMetadata({
@@ -215,7 +216,7 @@ final class ApplicationNavigationMetadata {
 /// Package-internal lifecycle for one framework navigation request.
 ///
 /// This type is intentionally absent from `package:rolter/rolter.dart`.
-@internal
+@meta.internal
 final class NavigationRequest {
   /// Creates a request whose transaction may become superseded before commit.
   NavigationRequest({
@@ -299,7 +300,7 @@ final class NavigationRequest {
 }
 
 /// Enqueues one package-internal framework request with its own completion.
-@internal
+@meta.internal
 Future<void> enqueueTrackedNavigationSnapshot<R extends RouteNode>(
   NavigationQueue<R> queue,
   List<R> snapshot,
@@ -307,7 +308,7 @@ Future<void> enqueueTrackedNavigationSnapshot<R extends RouteNode>(
 ) => queue._addTracked(snapshot, request);
 
 /// Enqueues an application snapshot with package-private commit metadata.
-@internal
+@meta.internal
 void enqueueApplicationNavigationSnapshot<R extends RouteNode>(
   NavigationQueue<R> queue,
   List<R> snapshot, {
@@ -315,31 +316,31 @@ void enqueueApplicationNavigationSnapshot<R extends RouteNode>(
 }) => queue._addApplication(snapshot, metadata: metadata);
 
 /// Returns the request currently being processed, if framework-tracked.
-@internal
+@meta.internal
 NavigationRequest? activeNavigationRequest<R extends RouteNode>(
   NavigationQueue<R> queue,
 ) => queue._active?.request;
 
 /// Returns package-private metadata attached to the active application entry.
-@internal
+@meta.internal
 ApplicationNavigationMetadata? activeApplicationNavigationMetadata<
   R extends RouteNode
 >(NavigationQueue<R> queue) => queue._active?.applicationMetadata;
 
 /// Completes the active tracked request at its state commit boundary.
-@internal
+@meta.internal
 void completeActiveNavigationRequest<R extends RouteNode>(
   NavigationQueue<R> queue,
 ) => queue._active?.request?.completeSuccess();
 
 /// Completes an active superseded or teardown-abandoned framework request.
-@internal
+@meta.internal
 void abandonActiveNavigationRequest<R extends RouteNode>(
   NavigationQueue<R> queue,
 ) => queue._active?.request?.completeAbandoned();
 
 /// Excludes an already accepted active snapshot from later relative app bases.
-@internal
+@meta.internal
 void markActiveNavigationCommitBoundary<R extends RouteNode>(
   NavigationQueue<R> queue,
 ) {
@@ -350,13 +351,13 @@ void markActiveNavigationCommitBoundary<R extends RouteNode>(
 }
 
 /// Seals current framework requests before an app snapshot depends on them.
-@internal
+@meta.internal
 void sealCommittableNavigationRequests<R extends RouteNode>(
   NavigationQueue<R> queue,
 ) => queue._sealCommittableTrackedRequests();
 
 /// Returns the latest queue snapshot that is still eligible to commit.
-@internal
+@meta.internal
 List<R>? latestEffectiveNavigationSnapshot<R extends RouteNode>(
   NavigationQueue<R> queue,
 ) => queue._latestEffectiveSnapshot;

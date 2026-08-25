@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../../model/route_node.dart';
 
 /// Lifecycle phases for one package-internal framework transaction.
-@internal
+@meta.internal
 enum FrameworkTransactionPhase {
   /// The latest request is not yet protected by an application FIFO barrier.
   pending,
@@ -25,7 +25,7 @@ enum FrameworkTransactionPhase {
 }
 
 /// State owned by one package-internal framework route transaction.
-@internal
+@meta.internal
 final class FrameworkTransaction {
   /// Creates a pending transaction without retaining `RouteInformation.state`.
   FrameworkTransaction(this.originUri, this.platformGeneration);
@@ -98,7 +98,7 @@ final class FrameworkTransaction {
 }
 
 /// Correlates browser correction with the app entry that caused supersession.
-@internal
+@meta.internal
 final class SupersessionContext {
   /// Creates a context tied to platform and application generations.
   SupersessionContext({
@@ -133,7 +133,7 @@ final class SupersessionContext {
 }
 
 /// Internal envelope shared by coordinated parser and delegate adapters.
-@internal
+@meta.internal
 final class CoordinatedConfiguration<R extends RouteNode> {
   /// Wraps one freshly parsed framework configuration.
   CoordinatedConfiguration.parsed(List<R> routes, this.transaction)

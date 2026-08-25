@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../../model/route_node.dart';
 import 'framework_transaction.dart';
 import 'routing_coordinator.dart';
 
 /// Parser adapter that creates transaction identity before asynchronous work.
-@internal
+@meta.internal
 final class CoordinatedRouteInformationParser<R extends RouteNode>
     extends RouteInformationParser<Object> {
   /// Wraps an application-owned typed parser without taking ownership of it.

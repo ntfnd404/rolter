@@ -1,12 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../../model/route_node.dart';
 import '../../state/routes_state.dart';
 import 'framework_transaction.dart';
 
 /// Coordinates framework transactions, app entries, and route reporting.
-@internal
+@meta.internal
 final class RoutingCoordinator<R extends RouteNode>
     implements RoutesStateCoordinator {
   /// Creates a coordinator backed by the single committed route state.

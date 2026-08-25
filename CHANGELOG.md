@@ -32,8 +32,10 @@
   `RouteInformation.state` still reaches custom parsers unchanged and is never
   compared, logged, or stringified by Rolter.
 - The supported pre-1.0 public surface and compatibility policy are now
-  explicit. SDK constraints, dependencies, route identity, and URL grammar did
-  not change; `RoutingConfig` is the only additive public declaration.
+  explicit. SDK constraints, route identity, and URL grammar did not change;
+  `RoutingConfig` is the only additive public declaration. The existing
+  transitive `meta` package is declared directly so package-internal APIs can
+  use `@internal` on the minimum supported Flutter version.
 
 ### Documentation
 

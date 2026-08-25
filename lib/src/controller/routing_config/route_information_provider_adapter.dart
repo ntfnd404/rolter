@@ -1,11 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../../model/route_node.dart';
 import 'routing_coordinator.dart';
 
 /// Provider adapter that applies coordinated browser reporting policy.
-@internal
+@meta.internal
 final class CoordinatedRouteInformationProvider<R extends RouteNode>
     extends RouteInformationProvider
     with ChangeNotifier {

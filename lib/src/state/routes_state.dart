@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart' as meta;
 
 import '../model/route_node.dart';
 import '../model/route_tree.dart' as tree;
@@ -481,7 +482,7 @@ final class _ResultEffect {
 }
 
 /// Package-internal bridge used by the coordinated Router configuration.
-@internal
+@meta.internal
 abstract interface class RoutesStateCoordinator {
   /// Starts a temporal FIFO barrier for an app entry that will be enqueued.
   Object? beginApplicationNavigation();
@@ -501,7 +502,7 @@ abstract interface class RoutesStateCoordinator {
 }
 
 /// Enqueues one framework route-path request and returns its own completion.
-@internal
+@meta.internal
 Future<void> applyFrameworkRoutePath<R extends RouteNode>(
   RoutesState<R> state,
   List<R> configuration,
@@ -509,25 +510,25 @@ Future<void> applyFrameworkRoutePath<R extends RouteNode>(
 ) => state._setFrameworkRoutePath(configuration, request);
 
 /// Returns the active framework request for package integration code.
-@internal
+@meta.internal
 NavigationRequest? activeFrameworkRouteRequest<R extends RouteNode>(
   RoutesState<R> state,
 ) => activeNavigationRequest<R>(state._queue);
 
 /// Whether the backing state has already been disposed.
-@internal
+@meta.internal
 bool routesStateIsDisposed<R extends RouteNode>(RoutesState<R> state) =>
     state._disposed;
 
 /// Attaches the single active coordinated Router integration.
-@internal
+@meta.internal
 void attachRoutesStateCoordinator<R extends RouteNode>(
   RoutesState<R> state,
   RoutesStateCoordinator coordinator,
 ) => state._attachCoordinator(coordinator);
 
 /// Detaches a coordinated Router integration without disposing the state.
-@internal
+@meta.internal
 void detachRoutesStateCoordinator<R extends RouteNode>(
   RoutesState<R> state,
   RoutesStateCoordinator coordinator,
