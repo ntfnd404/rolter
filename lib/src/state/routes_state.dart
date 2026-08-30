@@ -14,6 +14,9 @@ import 'pending_results.dart';
 /// either way. Framework integrations may submit an equivalent snapshot more
 /// than once, so treat each call as a state application rather than a unique
 /// user event; side effects must be idempotent or deduplicated externally.
+/// A request may be empty so an application can normalize it to its structural
+/// root, but the returned stack must contain at least one route. An empty final
+/// result fails before any commit, result completion, listener, or observer.
 typedef ApplyPipeline<R extends RouteNode> =
     FutureOr<List<R>> Function(
       List<R> requested,
@@ -23,6 +26,11 @@ typedef ApplyPipeline<R extends RouteNode> =
 ///
 /// Every intent computes a full target snapshot and enqueues it; the queue
 /// commits via [ApplyPipeline] and notifies listeners only on a real change.
+/// The committed root always contains at least one route because Flutter's
+/// root `Navigator.pages` API cannot represent an empty stack. A requested
+/// snapshot may still be empty so the application pipeline can normalize it to
+/// its own structural root; only an empty initial or final applied stack is
+/// rejected.
 /// Navigation mutations throw a [StateError] after [dispose]. An already-active
 /// pipeline is not cancelled, but its late result is abandoned without changing
 /// state or notifying callbacks.
@@ -30,11 +38,20 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   /// Creates a state with [initial] as the committed root, applying
   /// [_pipeline] to every subsequent change. [observers] receive a read-only
   /// [NavTransition] after each committed change (telemetry only).
+  ///
+  /// [initial] must contain at least one route. The pipeline is not applied to
+  /// the initial value, so Rolter cannot infer an application-specific default
+  /// route for an empty initial stack.
   RoutesState(
     List<R> initial,
     this._pipeline, {
     List<NavObserver<R>> observers = const [],
   }) : _root = List<R>.of(initial) {
+    if (_root.isEmpty) {
+      throw ArgumentError(
+        'rolter: RoutesState requires a non-empty initial root stack.',
+      );
+    }
     _validateTree(_root);
     _observers = List<NavObserver<R>>.unmodifiable(observers);
     _queue = NavigationQueue<R>(_commit);
@@ -71,6 +88,9 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
   Future<void> get processingCompleted => _queue.processingCompleted;
 
   /// Replaces the whole stack with [stack].
+  ///
+  /// [stack] may be empty only as a request for [_pipeline] to normalize. The
+  /// pipeline must still return a non-empty committed root.
   void setRoot(List<R> stack) {
     _ensureActive();
     _enqueueApplication(List<R>.of(stack));
@@ -271,6 +291,15 @@ class RoutesState<R extends RouteNode> extends ChangeNotifier {
       }
 
       final next = List<R>.of(applied);
+      // Empty requests remain useful normalization intents, but only the
+      // pipeline's final result is eligible to become committed Navigator
+      // state and therefore must contain a page.
+      if (next.isEmpty) {
+        throw StateError(
+          'rolter: the route pipeline produced an empty root stack. '
+          'A committed root requires at least one route.',
+        );
+      }
       _validateTree(next);
       if (_disposed || (request != null && !request.canCommit)) {
         abandonActiveNavigationRequest<R>(_queue);

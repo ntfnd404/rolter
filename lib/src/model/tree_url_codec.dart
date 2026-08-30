@@ -11,6 +11,10 @@ import 'route_url_codec.dart';
 /// when it has params. Root nodes are depth 0; each nesting level adds one
 /// leading dot, so the whole tree — flat or nested — round-trips through one
 /// flat path.
+///
+/// At the raw codec boundary an empty tree round-trips through `/`. The built-in
+/// `RoutingInformationParser` resolves that path with its app-owned root-path
+/// callback instead of committing an empty root Router configuration.
 class TreeUrlCodec<R extends RouteNode> implements RouteUrlCodec<R> {
   /// Creates a codec that decodes nodes via [_registry].
   const TreeUrlCodec(this._registry);
@@ -66,7 +70,9 @@ class TreeUrlCodec<R extends RouteNode> implements RouteUrlCodec<R> {
   /// which `encodeComponent` always encodes) are unambiguous, so each key and
   /// value is decoded exactly once.
   ///
-  /// A standard `?k=v` query (e.g. an external `/home?intent=stream`) is merged
+  /// A non-root path that contains no decodable node uses the registry's
+  /// application-owned fallback. A standard `?k=v` query (e.g. an external
+  /// `/home?intent=stream`) is merged
   /// into the **top** route's params, so it behaves like the inline form
   /// (`/home~intent=stream`). Inline `~` params win on a key conflict (they are
   /// the canonical, round-trippable form). Params the top route does not model
@@ -79,6 +85,17 @@ class TreeUrlCodec<R extends RouteNode> implements RouteUrlCodec<R> {
         if (segment.isNotEmpty) segment,
     ];
     final roots = _parseSegments(segments, 0, _registry);
+
+    // Empty and slash-only paths are the codec's legitimate empty value. A
+    // non-root path that collapses to no nodes is malformed and must remain a
+    // navigable app-owned not-found configuration instead of leaking `[]` to
+    // the root Router.
+    final isRootPath =
+        uri.pathSegments.isEmpty ||
+        uri.pathSegments.every((segment) => segment.isEmpty);
+    if (roots.isEmpty && !isRootPath) {
+      return <R>[_registry.fallback(uri)];
+    }
 
     final query = uri.queryParameters;
     if (query.isEmpty || roots.isEmpty) {

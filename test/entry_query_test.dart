@@ -34,6 +34,7 @@ void main() {
   );
   final parser = RoutingInformationParser<_Node>(
     TreeUrlCodec<_Node>(registry),
+    routesForRootPath: (_) => const <_Node>[_Node('a')],
     entryQuery: EntryQueryStore(),
   );
 

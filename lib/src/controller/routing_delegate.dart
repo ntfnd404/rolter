@@ -27,11 +27,11 @@ class RoutingDelegate<R extends RouteNode> extends RouterDelegate<List<R>>
   /// import 'package:flutter/material.dart';
   /// import 'package:rolter/rolter.dart';
   ///
-  /// final state = RoutesState<RouteNode>(
-  ///   const <RouteNode>[],
+  /// final state = RoutesState<AppRoute>(
+  ///   const <AppRoute>[DashboardRoute()],
   ///   (routes) => routes,
   /// );
-  /// final delegate = RoutingDelegate<RouteNode>(
+  /// final delegate = RoutingDelegate<AppRoute>(
   ///   state,
   ///   pageBuilder: (context, route) => MaterialPage<Object?>(
   ///     key: route.pageKey,

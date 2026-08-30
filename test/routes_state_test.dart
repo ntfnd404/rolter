@@ -43,6 +43,89 @@ void main() {
       RoutesState<TestRoute>(initial, (stack) => stack);
 
   group('RoutesState mutations', () {
+    test('rejects an empty initial committed root', () {
+      expect(
+        () => RoutesState<TestRoute>(const <TestRoute>[], (stack) => stack),
+        throwsA(
+          isA<ArgumentError>().having(
+            (error) => '$error',
+            'message',
+            isNot(contains('TestRoute')),
+          ),
+        ),
+      );
+    });
+
+    test('allows the pipeline to normalize an empty requested stack', () async {
+      final state = RoutesState<TestRoute>(
+        const [TestRoute('committed')],
+        (
+          requested,
+        ) => requested.isEmpty
+            ? const <TestRoute>[TestRoute('normalized')]
+            : requested,
+      );
+      addTearDown(state.dispose);
+
+      state.setRoot(const <TestRoute>[]);
+      await state.processingCompleted;
+
+      expect(state.root, const <TestRoute>[TestRoute('normalized')]);
+    });
+
+    test(
+      'rejects an empty final stack without committing and then recovers',
+      () async {
+        var rejectAsEmpty = true;
+        var pipelineCalls = 0;
+        var listenerCalls = 0;
+        final observer = _CapturingObserver();
+        final state = RoutesState<TestRoute>(
+          const [TestRoute('committed')],
+          (requested) {
+            pipelineCalls++;
+            return rejectAsEmpty ? const <TestRoute>[] : requested;
+          },
+          observers: <NavObserver<TestRoute>>[observer],
+        );
+        addTearDown(state.dispose);
+        state.addListener(() => listenerCalls++);
+
+        state.setRoot(const <TestRoute>[TestRoute('rejected')]);
+        state.push(const TestRoute('discarded'));
+        final failure = state.processingCompleted;
+
+        await expectLater(
+          failure,
+          throwsA(
+            isA<StateError>().having(
+              (error) => '$error',
+              'message',
+              allOf(
+                isNot(contains('rejected')),
+                isNot(contains('TestRoute')),
+                isNot(contains('ValueKey')),
+              ),
+            ),
+          ),
+        );
+        expect(state.root, const <TestRoute>[TestRoute('committed')]);
+        expect(listenerCalls, 0);
+        expect(observer.transitions, isEmpty);
+        expect(pipelineCalls, 1);
+
+        rejectAsEmpty = false;
+        state.push(const TestRoute('recovered'));
+        await state.processingCompleted;
+
+        expect(state.root, const <TestRoute>[
+          TestRoute('committed'),
+          TestRoute('recovered'),
+        ]);
+        expect(pipelineCalls, 2);
+      },
+    );
+
     test('reports processing without exposing its mutable queue', () async {
       final release = Completer<void>();
       final state = RoutesState<TestRoute>(const [TestRoute('a')], (
@@ -698,6 +781,65 @@ void main() {
       await state.processingCompleted;
       expect(await result, 2);
     });
+
+    test(
+      'an empty final pop keeps the committed result and history intact',
+      () async {
+        var rejectPopAsEmpty = false;
+        late final RoutesState<TestRoute> state;
+        final history = NavigationHistory<TestRoute>(
+          (stack) => state.setRoot(stack),
+        );
+        addTearDown(history.dispose);
+        state = RoutesState<TestRoute>(
+          const <TestRoute>[TestRoute('home')],
+          (requested) => rejectPopAsEmpty && requested.length == 2
+              ? const <TestRoute>[]
+              : requested,
+          observers: <NavObserver<TestRoute>>[history],
+        );
+        addTearDown(state.dispose);
+        var historyNotifications = 0;
+        history.addListener(() => historyNotifications++);
+
+        state.push(const TestRoute('list'));
+        await state.processingCompleted;
+        final result = state.pushForResult<int>(const TestRoute('picker'));
+        await state.processingCompleted;
+        expect(history.canGoBack, isTrue);
+        expect(history.canGoForward, isFalse);
+        expect(historyNotifications, 2);
+
+        var resultCompleted = false;
+        unawaited(result.then((_) => resultCompleted = true));
+        rejectPopAsEmpty = true;
+        state.popWith<int>(1);
+
+        await expectLater(state.processingCompleted, throwsStateError);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(state.root, const <TestRoute>[
+          TestRoute('home'),
+          TestRoute('list'),
+          TestRoute('picker'),
+        ]);
+        expect(history.canGoBack, isTrue);
+        expect(history.canGoForward, isFalse);
+        expect(historyNotifications, 2);
+        expect(resultCompleted, isFalse);
+
+        rejectPopAsEmpty = false;
+        state.popWith<int>(2);
+        await state.processingCompleted;
+
+        expect(await result, 2);
+        expect(state.root, const <TestRoute>[
+          TestRoute('home'),
+          TestRoute('list'),
+        ]);
+        expect(historyNotifications, 3);
+      },
+    );
 
     test('a failed speculative result route completes with null', () async {
       final release = Completer<void>();

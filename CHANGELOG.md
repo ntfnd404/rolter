@@ -1,3 +1,41 @@
+## 0.4.0
+
+### Breaking changes
+
+- `RoutingInformationParser` now requires `routesForRootPath`. Applications
+  explicitly map `/` to their complete structural root stack; Rolter no longer
+  allows the built-in codec's empty value to reach a root Navigator and does
+  not assume a `home` route.
+- `RoutesState` now rejects an empty initial or final committed root. Empty
+  requested snapshots remain valid when the application pipeline normalizes
+  them to a non-empty result.
+
+### Changed
+
+- `/` is treated as an input alias. The selected codec determines the
+  canonical URL, so a mapping such as `/ → DashboardRoute` is reported as
+  `/dashboard` (or a codec-specific opaque URL). With `RoutingConfig`, a Web
+  correction replaces the alias entry instead of creating a Back loop.
+- `TreeUrlCodec` and `Base64RouteCodec` retain raw empty-tree round-tripping
+  through `/`. Malformed non-root built-in URLs that contain no valid node now
+  use the registry fallback; partially valid Base64 payloads keep valid nodes.
+- `NestedNavigatorHost` renders an empty box while its addressed subtree is
+  absent or has no children, instead of constructing a nested Navigator with
+  no pages. It creates the Navigator again when children appear.
+- Parser failures preserve their original error object and stack without
+  including route information, query data, state, routes, or keys in
+  Rolter-owned diagnostics.
+- `EntryQueryStore` is explicitly a decoded single-value map for the most
+  recent entry attempt; capture is not rolled back by a later parsing failure.
+- Base64 decoding retains its first-non-empty-segment compatibility rule, and
+  empty nested hosts bubble Back without invoking a nested override.
+
+### Documentation
+
+- Added the [0.3.0 to 0.4.0 migration guide](doc/migration_0_3_to_0_4.md),
+  including root aliases, canonical URLs, custom parser/codec duties, Web
+  history correction, and the non-empty committed-root invariant.
+
 ## 0.3.0
 
 ### Added

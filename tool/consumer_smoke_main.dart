@@ -89,6 +89,7 @@ void main() {
         ),
         routeInformationParser: RoutingInformationParser<SmokeRoute>(
           TreeUrlCodec<SmokeRoute>(registry),
+          routesForRootPath: (_) => const <SmokeRoute>[SmokeRoute()],
         ),
       ),
     ),

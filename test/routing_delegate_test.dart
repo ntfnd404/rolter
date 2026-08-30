@@ -153,37 +153,11 @@ void main() {
     expect(find.text('detail'), findsNothing);
   });
 
-  testWidgets('does not call the builder for an empty root stack', (
-    tester,
-  ) async {
-    var calls = 0;
-    final state = RoutesState<_Route>(const [], (requested) => requested);
-    addTearDown(state.dispose);
-    final delegate = RoutingDelegate<_Route>(
-      state,
-      pageBuilder: (context, route) {
-        calls++;
-
-        return MaterialPage<Object?>(
-          key: route.pageKey,
-          child: const Text('x'),
-        );
-      },
+  test('rejects an empty committed root before a delegate can build it', () {
+    expect(
+      () => RoutesState<_Route>(const [], (requested) => requested),
+      throwsA(isA<ArgumentError>()),
     );
-    addTearDown(delegate.dispose);
-
-    await tester.pumpWidget(
-      Builder(
-        builder: (context) {
-          final navigator = delegate.build(context) as Navigator;
-          expect(navigator.pages, isEmpty);
-
-          return const SizedBox();
-        },
-      ),
-    );
-
-    expect(calls, 0);
   });
 
   testWidgets('preserves constructor-captured dependency identity', (

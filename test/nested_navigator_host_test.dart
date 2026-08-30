@@ -91,6 +91,101 @@ Page<Object?> _buildPage(BuildContext context, RouteNode route) =>
     };
 
 void main() {
+  testWidgets('an empty hosted subtree never creates an empty Navigator', (
+    tester,
+  ) async {
+    final state = RoutesState<RouteNode>(
+      const <RouteNode>[_Shell(<RouteNode>[])],
+      (requested) => requested,
+    );
+    addTearDown(state.dispose);
+    final controller = NavigationController<RouteNode>(state);
+    final delegate = RoutingDelegate<RouteNode>(state, pageBuilder: _buildPage);
+    addTearDown(delegate.dispose);
+
+    await tester.pumpWidget(
+      NavigatorScope<NavigationController<RouteNode>>(
+        navigator: controller,
+        child: MaterialApp.router(
+          routerDelegate: delegate,
+          backButtonDispatcher: RootBackButtonDispatcher(),
+        ),
+      ),
+    );
+
+    expect(find.byType(Navigator), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    controller.mutateAt(
+      const <String>['shell'],
+      (node) => node.withChildren(const <RouteNode>[_Leaf('child')]),
+    );
+    await state.processingCompleted;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Navigator), findsNWidgets(2));
+    expect(find.text('child-body'), findsOneWidget);
+
+    controller.mutateAt(
+      const <String>['shell'],
+      (node) => node.withChildren(const <RouteNode>[]),
+    );
+    await state.processingCompleted;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Navigator), findsOneWidget);
+    expect(find.text('child-body'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'an empty active host bubbles Back without calling its override',
+    (
+      tester,
+    ) async {
+      final dispatcher = _RecordingBackButtonDispatcher();
+      var nestedOverrideCalls = 0;
+      final state = RoutesState<RouteNode>(
+        const <RouteNode>[_Shell(<RouteNode>[])],
+        (requested) => requested,
+      );
+      addTearDown(state.dispose);
+      final controller = NavigationController<RouteNode>(state);
+      Page<Object?> builder(BuildContext context, RouteNode route) =>
+          MaterialPage<Object?>(
+            key: route.pageKey,
+            child: NestedNavigatorHost<RouteNode>(
+              service: controller,
+              path: const <String>['shell'],
+              pageBuilder: _buildPage,
+              onBackButtonPressed: (navigator) async {
+                nestedOverrideCalls++;
+                return true;
+              },
+            ),
+          );
+      final delegate = RoutingDelegate<RouteNode>(
+        state,
+        pageBuilder: builder,
+      );
+      addTearDown(delegate.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp.router(
+          routerDelegate: delegate,
+          backButtonDispatcher: dispatcher,
+        ),
+      );
+
+      expect(find.byType(Navigator), findsOneWidget);
+      expect(
+        await dispatcher.invokeCallback(SynchronousFuture<bool>(false)),
+        isFalse,
+      );
+      expect(nestedOverrideCalls, 0);
+    },
+  );
+
   testWidgets('a nested back pop mutates the hosted subtree', (tester) async {
     final state = RoutesState<RouteNode>(
       const [

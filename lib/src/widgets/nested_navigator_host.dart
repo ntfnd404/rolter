@@ -20,6 +20,13 @@ import '../pages/route_page_builder.dart';
 /// its state, so the system back button targets it — not just the AppBar arrow.
 /// Customise the inner navigator with [transitionDelegate] (e.g.
 /// `NoAnimationTransitionDelegate`) and [onBackButtonPressed].
+///
+/// If the addressed node is absent or currently has no children, the host
+/// renders an empty box instead of creating a `Navigator` with no pages. Empty
+/// child lists remain valid route data; a nested Navigator is created
+/// automatically when the subtree later becomes non-empty. An active empty
+/// host lets Back bubble to its parent; without a nested Navigator there is no
+/// state to pass to [onBackButtonPressed], so that override is not called.
 class NestedNavigatorHost<R extends RouteNode> extends StatefulWidget {
   /// Creates a host for the children of the node at [path].
   const NestedNavigatorHost({
@@ -71,6 +78,8 @@ class NestedNavigatorHost<R extends RouteNode> extends StatefulWidget {
   /// it can fall back to the default pop (`navigator.maybePop()`) and add app
   /// logic around it. Return `true` if the press was handled, `false` to let it
   /// bubble to the parent. Defaults to popping the inner navigator.
+  /// This callback is not invoked while the addressed subtree is absent or
+  /// empty because no inner [NavigatorState] exists.
   final Future<bool> Function(NavigatorState navigator)? onBackButtonPressed;
 
   @override
@@ -164,7 +173,9 @@ class _NestedNavigatorHostState<R extends RouteNode>
   @override
   Widget build(BuildContext context) {
     final node = nodeAtPath<R>(widget.service.rootStack, widget.path);
-    if (node == null) {
+    // Flutter's pages API rejects an empty list. Treat a temporarily empty
+    // subtree like a missing host rather than inventing a package-owned page.
+    if (node == null || node.children.isEmpty) {
       return const SizedBox.shrink();
     }
 

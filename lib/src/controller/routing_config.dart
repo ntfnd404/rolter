@@ -23,6 +23,9 @@ import 'routing_config/routing_delegate_adapter.dart';
 /// the platform defaults and owns them. Call [dispose] before disposing the
 /// backing state. Opaque `RouteInformation.state` is passed to the supplied
 /// parser unchanged; coordination retains only the platform request's URI.
+/// Structural URL policy, including what `/` means, belongs to the supplied
+/// parser rather than this config. The built-in `RoutingInformationParser`
+/// requires the application to provide that root mapping explicitly.
 /// Use one instance with one simultaneously mounted root Router. A sequential
 /// remount is supported after the previous Router has fully unmounted; nested
 /// navigators use child dispatchers and route subtrees instead of remounting

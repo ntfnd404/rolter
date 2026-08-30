@@ -41,6 +41,9 @@ final class _CentralizedRouteOwnedAppState
     );
     _parser = RoutingInformationParser<CentralizedRoute>(
       TreeUrlCodec<CentralizedRoute>(centralizedRouteRegistry),
+      routesForRootPath: (_) => const <CentralizedRoute>[
+        CentralizedHomeRoute(),
+      ],
     );
   }
 
