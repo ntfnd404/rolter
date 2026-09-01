@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rolter/rolter.dart';
 
 @immutable
-final class TestRoute implements RouteNode {
+class TestRoute implements RouteNode {
   const TestRoute(this.name, {this.pageKeyError});
 
   @override
@@ -40,6 +40,11 @@ final class TestRoute implements RouteNode {
 
   @override
   int get hashCode => name.hashCode;
+}
+
+final class HistoryExcludedTestRoute extends TestRoute
+    implements HistoryExcluded {
+  const HistoryExcludedTestRoute(super.name);
 }
 
 final class ThrowingRouteList extends ListBase<TestRoute> {
@@ -86,6 +91,18 @@ final class TestParser extends RouteInformationParser<List<TestRoute>> {
               : information.uri.pathSegments.last,
         ),
       ]);
+
+  @override
+  RouteInformation restoreRouteInformation(List<TestRoute> configuration) =>
+      RouteInformation(uri: Uri(path: '/${configuration.last.name}'));
+}
+
+final class EmptyParser extends RouteInformationParser<List<TestRoute>> {
+  const EmptyParser();
+
+  @override
+  Future<List<TestRoute>> parseRouteInformation(RouteInformation information) =>
+      SynchronousFuture<List<TestRoute>>(const <TestRoute>[]);
 
   @override
   RouteInformation restoreRouteInformation(List<TestRoute> configuration) =>

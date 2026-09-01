@@ -21,8 +21,9 @@ final class RolterAdapter implements AppNavigationController {
        _invalidDestination = invalidDestination {
     final definitionsByWire = _indexByWire(_definitionsByType.values);
     _ensureRegistered(initialDestination);
+    final initialRoute = _wrap(initialDestination);
     _state = RoutesState<_DestinationRouteNode>(<_DestinationRouteNode>[
-      _wrap(initialDestination),
+      initialRoute,
     ], (requested) => requested);
     _controller = NavigationController<_DestinationRouteNode>(_state);
     _delegate = RoutingDelegate<_DestinationRouteNode>(
@@ -38,10 +39,8 @@ final class RolterAdapter implements AppNavigationController {
       fallback: (uri) => _wrapRegistered(unknownDestination(uri)),
     );
     _parser = RoutingInformationParser<_DestinationRouteNode>(
-      _AdapterCodec(
-        TreeUrlCodec<_DestinationRouteNode>(registry),
-        emptyLocation: _wrap(initialDestination),
-      ),
+      TreeUrlCodec<_DestinationRouteNode>(registry),
+      routesForRootPath: (_) => <_DestinationRouteNode>[initialRoute],
     );
   }
 
@@ -159,22 +158,6 @@ final class RolterAdapter implements AppNavigationController {
       indexed,
     );
   }
-}
-
-final class _AdapterCodec implements RouteUrlCodec<_DestinationRouteNode> {
-  const _AdapterCodec(this._delegate, {required this.emptyLocation});
-
-  final RouteUrlCodec<_DestinationRouteNode> _delegate;
-  final _DestinationRouteNode emptyLocation;
-
-  @override
-  List<_DestinationRouteNode> decode(Uri uri) {
-    final decoded = _delegate.decode(uri);
-    return decoded.isEmpty ? <_DestinationRouteNode>[emptyLocation] : decoded;
-  }
-
-  @override
-  Uri encode(List<_DestinationRouteNode> roots) => _delegate.encode(roots);
 }
 
 @immutable

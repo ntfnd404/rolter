@@ -40,6 +40,13 @@ contributions. It uses `RoutingConfig` so async guard redirects, platform
 supersession, system Back, and Web history correction share one transaction
 boundary. The other app folders remain independent low-level alternatives.
 
+Each reference app also defines `/` explicitly through
+`RoutingInformationParser.routesForRootPath`. The callback returns that app's
+structural entry route; Rolter does not assume a route named `home`. The
+feature-first example maps `/` to its `HomeRoute`, while another application
+could map it to a dashboard, onboarding shell, or another codec-round-trippable
+root stack.
+
 ## Run
 
 ```bash

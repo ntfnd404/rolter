@@ -56,7 +56,7 @@ Add `rolter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  rolter: ^0.3.0
+  rolter: ^0.4.0
 ```
 
 ## Usage
@@ -76,14 +76,14 @@ sealed class AppRoute with KeyedRouteEquality implements PageRouteNode {
   AppRoute withChildren(List<RouteNode> children) => this;
 }
 
-final class HomeRoute extends AppRoute {
-  const HomeRoute();
+final class DashboardRoute extends AppRoute {
+  const DashboardRoute();
 
   @override
-  LocalKey get pageKey => const ValueKey('home');
+  LocalKey get pageKey => const ValueKey('dashboard');
 
   @override
-  String get name => 'home';
+  String get name => 'dashboard';
 
   @override
   Map<String, String> toParams() => const {};
@@ -92,22 +92,27 @@ final class HomeRoute extends AppRoute {
   Page<Object?> buildPage(BuildContext context) => MaterialPage<Object?>(
     key: pageKey,
     name: name,
-    child: const Scaffold(body: Center(child: Text('Home'))),
+    child: const Scaffold(body: Center(child: Text('Dashboard'))),
   );
 }
 
 // 2. Register decoders so URLs / deep links rebuild the tree.
 final registry = RouteRegistry<AppRoute>(
-  {'home': (params, children) => const HomeRoute()},
-  fallback: (uri) => const HomeRoute(),
+  {'dashboard': (params, children) => const DashboardRoute()},
+  fallback: (uri) => const DashboardRoute(),
 );
 
 // 3. Wire the coordinated Navigator 2.0 integration.
-final state = RoutesState<AppRoute>(const [HomeRoute()], (stack) => stack);
+final state = RoutesState<AppRoute>(
+  const [DashboardRoute()],
+  (stack) => stack,
+);
 final router = RoutingConfig<AppRoute>(
   state: state,
-  routeInformationParser:
-      RoutingInformationParser<AppRoute>(TreeUrlCodec(registry)),
+  routeInformationParser: RoutingInformationParser<AppRoute>(
+    TreeUrlCodec(registry),
+    routesForRootPath: (information) => const [DashboardRoute()],
+  ),
   pageBuilder: buildPageFromRouteNode<AppRoute>,
 );
 
@@ -115,6 +120,39 @@ final app = MaterialApp.router(
   routerConfig: router,
 );
 ```
+
+### The `/` entry URL
+
+Rolter does not assume that an application has a route named `home`. The
+built-in parser therefore requires `routesForRootPath`, which maps an empty or
+slash-only incoming path to the application's complete structural root stack.
+The callback receives the original `RouteInformation`, including query,
+fragment, and opaque `state`. Keep it synchronous, deterministic, and free of
+navigation side effects; authentication and session decisions belong in the
+route pipeline.
+
+`/` is an input alias, not necessarily the canonical URL. In the example above,
+opening `/` commits `DashboardRoute`, then `TreeUrlCodec` restores it as
+`/dashboard`. `RoutingConfig` reports that Web correction with `neglect`, so it
+replaces the alias entry instead of creating a Back loop. A different codec may
+produce an opaque canonical URL. Routes returned by `routesForRootPath` must
+round-trip through the selected codec by route-tree value equality, including
+nested children and identity-bearing parameters. This is an application
+contract rather than an additional runtime encode/decode by Rolter. If the
+last returned route is `HistoryExcluded`, the stack is still accepted but URL
+reporting is intentionally suppressed.
+
+An optional `EntryQueryStore` captures `Uri.queryParameters` before route
+resolution. Its value is a decoded, single-value map rather than a lossless raw
+query string, and a later parsing failure does not roll it back. The opaque
+input `RouteInformation.state` is available to `routesForRootPath` but is not
+automatically copied to restored or canonical route information.
+
+The raw codec domain still includes an empty tree: both built-in codecs can
+round-trip `[]` through `/`. Router state is stricter. `RoutesState` requires a
+non-empty initial and committed root because Flutter's root `Navigator.pages`
+cannot be empty. A custom parser or app mutation may submit `[]` only when the
+pipeline intentionally normalizes it to a non-empty application root.
 
 To call navigation from screens via `context.navigator`, place a
 `NavigatorScope` (with your `NavigationController`) **above**
@@ -230,7 +268,9 @@ lifecycle, extensibility, and router portability. See
 [Migration from 0.1.x to 0.2.0](doc/migration_0_1_to_0_2.md) for the exact
 breaking API diff. When upgrading from 0.2.1, also read
 [Migration from 0.2.1 to 0.3.0](doc/migration_0_2_to_0_3.md) for the new
-request-scoped `RouterDelegate` Future contract.
+request-scoped `RouterDelegate` Future contract. For 0.4.0, read
+[Migration from 0.3.0 to 0.4.0](doc/migration_0_3_to_0_4.md) for the required
+root-path mapping and non-empty committed-root invariant.
 
 ## Extensible navigation scheduling and security
 
@@ -515,6 +555,14 @@ The parser depends on the `RouteUrlCodec` interface, not a concrete codec.
 strip the fragment (OAuth / Telegram): the whole route survives as one token
 (`/eyJuIjoiaG9tZSJ9`). Or write your own, as long as `decode(encode(tree))`
 round-trips.
+
+At the raw codec boundary, `encode([])` is `/` and direct `decode('/')` is
+empty. The built-in parser intercepts that root alias before codec decoding and
+requires an app-defined non-empty route stack. For non-root external input,
+the built-in codecs use the registry fallback when the payload contains no
+valid node; a partially valid Base64 payload keeps its valid nodes. A custom
+codec used with the built-in parser must likewise return a non-empty tree for a
+non-root URL or apply its own fallback.
 
 Base64url is reversible encoding, not encryption, integrity protection, or
 authentication. Anyone can decode, modify, and re-encode the route token. Do

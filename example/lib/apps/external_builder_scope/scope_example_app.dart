@@ -52,6 +52,7 @@ final class _ExternalBuilderScopeAppState
     );
     _parser = RoutingInformationParser<ScopedRoute>(
       TreeUrlCodec<ScopedRoute>(scopedRouteRegistry),
+      routesForRootPath: (_) => const <ScopedRoute>[ScopedHomeRoute()],
     );
   }
 

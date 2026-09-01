@@ -107,6 +107,167 @@ void main() {
     });
 
     testWidgets(
+      'the root alias commits its app-defined route and replaces the URL',
+      (tester) async {
+        final provider = RecordingProvider('/');
+        final registry = RouteRegistry<TestRoute>(
+          <String, RouteDecoder<TestRoute>>{
+            'home': (params, children) => const TestRoute('home'),
+            'dashboard': (params, children) => const TestRoute('dashboard'),
+          },
+          fallback: (uri) => const TestRoute('home'),
+        );
+        final parser = RoutingInformationParser<TestRoute>(
+          TreeUrlCodec<TestRoute>(registry),
+          routesForRootPath: (_) => const <TestRoute>[
+            TestRoute('dashboard'),
+          ],
+        );
+        final state = RoutesState<TestRoute>(
+          const <TestRoute>[TestRoute('home')],
+          (requested) => requested,
+        );
+        final config = createTestConfig(
+          state,
+          parser: parser,
+          provider: provider,
+        );
+
+        await tester.pumpWidget(MaterialApp.router(routerConfig: config));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(state.root, const <TestRoute>[TestRoute('dashboard')]);
+        expect(find.text('dashboard'), findsOneWidget);
+        expect(provider.reports, isNotEmpty);
+        expect(provider.reports.last.information.uri.path, '/dashboard');
+        expect(
+          provider.reports.last.type,
+          RouteInformationReportingType.neglect,
+        );
+
+        provider.reports.clear();
+        provider.go(RouteInformation(uri: Uri(path: '/')));
+        await tester.pumpAndSettle();
+
+        expect(state.root, const <TestRoute>[TestRoute('dashboard')]);
+        expect(provider.reports, isNotEmpty);
+        expect(provider.reports.last.information.uri.path, '/dashboard');
+        expect(
+          provider.reports.last.type,
+          RouteInformationReportingType.neglect,
+        );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        config.dispose();
+        state.dispose();
+        provider.dispose();
+      },
+    );
+
+    testWidgets(
+      'a HistoryExcluded root alias commits without a canonical report',
+      (tester) async {
+        final provider = RecordingProvider('/');
+        final registry = RouteRegistry<TestRoute>(
+          <String, RouteDecoder<TestRoute>>{
+            'home': (params, children) => const TestRoute('home'),
+            'private': (params, children) =>
+                const HistoryExcludedTestRoute('private'),
+          },
+          fallback: (uri) => const TestRoute('home'),
+        );
+        final parser = RoutingInformationParser<TestRoute>(
+          TreeUrlCodec<TestRoute>(registry),
+          routesForRootPath: (_) => const <TestRoute>[
+            HistoryExcludedTestRoute('private'),
+          ],
+        );
+        final state = RoutesState<TestRoute>(
+          const <TestRoute>[TestRoute('home')],
+          (requested) => requested,
+        );
+        final config = createTestConfig(
+          state,
+          parser: parser,
+          provider: provider,
+        );
+
+        await tester.pumpWidget(MaterialApp.router(routerConfig: config));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(state.root, const <TestRoute>[
+          HistoryExcludedTestRoute('private'),
+        ]);
+        expect(find.text('private'), findsOneWidget);
+        expect(provider.reports, isEmpty);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        config.dispose();
+        state.dispose();
+        provider.dispose();
+      },
+    );
+
+    testWidgets(
+      'a custom parser may submit empty only when the pipeline normalizes it',
+      (tester) async {
+        final provider = RecordingProvider('/');
+        final state = RoutesState<TestRoute>(
+          const <TestRoute>[TestRoute('home')],
+          (requested) => requested.isEmpty
+              ? const <TestRoute>[TestRoute('dashboard')]
+              : requested,
+        );
+        final config = createTestConfig(
+          state,
+          parser: const EmptyParser(),
+          provider: provider,
+        );
+
+        await tester.pumpWidget(MaterialApp.router(routerConfig: config));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(state.root, const <TestRoute>[TestRoute('dashboard')]);
+        expect(find.text('dashboard'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        config.dispose();
+        state.dispose();
+        provider.dispose();
+      },
+    );
+
+    testWidgets('a mounted root Navigator never receives empty pages', (
+      tester,
+    ) async {
+      final provider = RecordingProvider('/home');
+      final state = RoutesState<TestRoute>(
+        const <TestRoute>[TestRoute('home')],
+        (requested) => requested,
+      );
+      final config = createTestConfig(state, provider: provider);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: config));
+      await tester.pumpAndSettle();
+
+      state.setRoot(const <TestRoute>[]);
+      await expectLater(state.processingCompleted, throwsStateError);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(state.root, const <TestRoute>[TestRoute('home')]);
+      expect(find.text('home'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      config.dispose();
+      state.dispose();
+      provider.dispose();
+    });
+
+    testWidgets(
       'a sealed framework commit cannot suppress a later app report',
       (tester) async {
         final releaseA = Completer<void>();

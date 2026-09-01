@@ -201,6 +201,24 @@ void main() {
     test('empty path decodes to an empty stack', () {
       expect(codec.decode(Uri.parse('/')), isEmpty);
       expect(codec.decode(Uri.parse('')), isEmpty);
+      expect(codec.decode(codec.encode(const <_Node>[])), isEmpty);
+    });
+
+    test('a malformed non-root path uses the full-uri fallback', () {
+      Uri? attempted;
+      final fallbackCodec = TreeUrlCodec<_Node>(
+        RouteRegistry<_Node>(
+          const <String, RouteDecoder<_Node>>{},
+          fallback: (uri) {
+            attempted = uri;
+            return const _Node('not-found');
+          },
+        ),
+      );
+      final uri = Uri.parse('/...?private=query#fragment');
+
+      expect(fallbackCodec.decode(uri), const <_Node>[_Node('not-found')]);
+      expect(attempted, same(uri));
     });
 
     test('unknown name falls back', () {

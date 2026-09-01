@@ -79,6 +79,7 @@ class _FeatureFirstExampleAppState extends State<FeatureFirstExampleApp> {
       state: _state,
       routeInformationParser: RoutingInformationParser<AppRoute>(
         TreeUrlCodec<AppRoute>(appRegistry),
+        routesForRootPath: (_) => const <AppRoute>[HomeRoute()],
         entryQuery: _entryQuery,
       ),
       pageBuilder: _pages.build,

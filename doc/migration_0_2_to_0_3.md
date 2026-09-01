@@ -1,5 +1,10 @@
 # Migrating from Rolter 0.2.1 to 0.3.0
 
+> Continuing to 0.4.0? Also read the
+> [0.3.0 to 0.4.0 migration guide](migration_0_3_to_0_4.md). The built-in
+> parser gains a required application-owned mapping for `/`, while committed
+> root state becomes explicitly non-empty.
+
 Rolter 0.3.0 keeps route identity, URL grammar, SDK constraints, and existing
 method signatures. It adds `RoutingConfig` and changes the observable
 completion semantics of Flutter route-path requests and `popWith`.
